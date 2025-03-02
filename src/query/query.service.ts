@@ -64,7 +64,7 @@ export class QueryService {
       const cleanResponse = response.choices[0].message.content?.trim() ?? '';
       this.logger.debug(`Generated SQL query: ${cleanResponse}`);
 
-      // Security check for DML operations
+      // Security check for DML operations (nakli guardrails)
       const dmlKeywords = [
         'INSERT',
         'UPDATE',
@@ -72,6 +72,10 @@ export class QueryService {
         'CREATE',
         'ALTER',
         'DROP',
+        'MERGE',
+        'CALL',
+        'LOCK',
+        'TRUNCATE'
       ];
       if (
         dmlKeywords.some((keyword) =>
