@@ -183,7 +183,7 @@ export class QueryService {
 
     try {
       dataSource = new DataSource({
-        type: provider as 'postgres' | 'mysql' | 'mssql',
+        type: provider as 'postgres' | 'mysql' | 'mssql' |'oracle' |'mariadb',
         host,
         port,
         username,
@@ -257,7 +257,6 @@ export class QueryService {
       const { host, username, password, name, port, schema, provider } =
         queryEntity.database;
 
-      console.log(username, host, password + '###########################');
 
       let finalData: any;
       let generatedSqlQuery: string;

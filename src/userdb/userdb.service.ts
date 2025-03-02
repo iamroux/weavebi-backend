@@ -20,7 +20,7 @@ export class UserdbService {
 
   // Optimized schema extraction
   private async getSchema(
-    provider: 'mysql' | 'mariadb' | 'postgres' | 'mssql',
+    provider: 'mysql' | 'mariadb' | 'postgres' | 'mssql' | 'oracle',
     host: string,
     port: number,
     username: string,
@@ -107,7 +107,7 @@ export class UserdbService {
 
       // Get the schema of the database
       const schema = await this.getSchema(
-        createUserdbDto.provider as 'mysql' | 'mariadb' | 'postgres' | 'mssql',
+        createUserdbDto.provider as 'mysql' | 'mariadb' | 'postgres' | 'mssql' | 'oracle',
         createUserdbDto.host,
         createUserdbDto.port,
         createUserdbDto.username,
@@ -119,7 +119,7 @@ export class UserdbService {
       const newDatabase = this.userDbRepo.create({
         ...createUserdbDto,
         userId: userId,
-        schema: JSON.stringify(schema), // Store both formats in the schema field
+        schema: JSON.stringify(schema), 
       });
 
       await this.userDbRepo.save(newDatabase);
@@ -180,7 +180,8 @@ export class UserdbService {
           | 'mysql'
           | 'mariadb'
           | 'postgres'
-          | 'mssql',
+          | 'mssql'
+          | 'oracle',
         host: createUserdbDto.host,
         port: createUserdbDto.port,
         username: createUserdbDto.username,
