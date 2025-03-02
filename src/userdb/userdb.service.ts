@@ -51,19 +51,15 @@ export class UserdbService {
           table.name.startsWith('_pg_') ||
           table.schema === 'information_schema' ||
           table.schema === 'pg_catalog' ||
-      
           // MySQL / MariaDB
           table.schema === 'mysql' ||
-      
           // MSSQL
           table.schema === 'sys' ||
           table.schema === 'information_schema' ||
-      
           // Oracle
           table.schema === 'SYS' ||
           table.schema === 'SYSTEM' ||
           table.schema === 'CTXSYS' ||
-      
           // SQLite
           table.name === 'sqlite_master'
         ) {
@@ -123,7 +119,12 @@ export class UserdbService {
 
       // Get the schema of the database
       const schema = await this.getSchema(
-        createUserdbDto.provider as 'mysql' | 'mariadb' | 'postgres' | 'mssql' | 'oracle',
+        createUserdbDto.provider as
+          | 'mysql'
+          | 'mariadb'
+          | 'postgres'
+          | 'mssql'
+          | 'oracle',
         createUserdbDto.host,
         createUserdbDto.port,
         createUserdbDto.username,
@@ -135,7 +136,7 @@ export class UserdbService {
       const newDatabase = this.userDbRepo.create({
         ...createUserdbDto,
         userId: userId,
-        schema: JSON.stringify(schema), 
+        schema: JSON.stringify(schema),
       });
 
       await this.userDbRepo.save(newDatabase);
