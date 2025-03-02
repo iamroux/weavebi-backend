@@ -584,6 +584,37 @@ export class QueryService {
     }
   }
 
+  async getQueryCountForDatabase(databaseId:number, userid:number){
+    try {
+    const count = await this.queryRepo.count({where: {userId:userid, databaseId:databaseId}})
+    return {count: count}
+    }
+    catch(error){
+      this.logger.error(`Failed to fetch count of queries ${databaseId}: ${error.message}`)
+      throw new InternalServerErrorException('Couldnt fetch query count')
+    }
+  }
+
+  async getQueryCountFordashboard(dashboardId ){
+    try {
+    const count = await this.queryRepo
+    .createQueryBuilder('query')
+    .innerJoin('query.dashboards', 'dashboard')
+    .where('dashboard.id = :dashboardId', { dashboardId })
+    .getCount();
+    return {count: count};
+    }
+    catch (error){
+      this.logger.error(
+        `Failed to fetch query count for dashboard ${dashboardId}: ${error.message}`,
+      );
+      throw new InternalServerErrorException('Couldnt fetch query count')
+    }
+
+
+  }
+
+
   async getDashboardQueries(
     dashboardId: number,
     userId: number,
