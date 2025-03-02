@@ -45,11 +45,27 @@ export class UserdbService {
       const schema = {};
 
       for (const table of tables) {
-        // Skip system tables and information_schema tables
         if (
-          table.name.startsWith('_pg_') || // Skip internal PostgreSQL tables
-          table.name.startsWith('pg_') || // Skip PostgreSQL system tables
-          table.schema === 'information_schema' // Skip information_schema tables
+          // PostgreSQL
+          table.name.startsWith('pg_') ||
+          table.name.startsWith('_pg_') ||
+          table.schema === 'information_schema' ||
+          table.schema === 'pg_catalog' ||
+      
+          // MySQL / MariaDB
+          table.schema === 'mysql' ||
+      
+          // MSSQL
+          table.schema === 'sys' ||
+          table.schema === 'information_schema' ||
+      
+          // Oracle
+          table.schema === 'SYS' ||
+          table.schema === 'SYSTEM' ||
+          table.schema === 'CTXSYS' ||
+      
+          // SQLite
+          table.name === 'sqlite_master'
         ) {
           continue;
         }
