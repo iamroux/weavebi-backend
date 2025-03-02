@@ -26,7 +26,13 @@ export class AuthService {
     private userRepo: Repository<UserEntity>,
     private jwtService: JwtService,
   ) {
-    this.redisClient = new Redis();
+    this.redisClient = new Redis(
+      {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT || '6379'),
+
+      }
+    );
 
     this.mailer = nodemailer.createTransport({
       service: 'Gmail',
