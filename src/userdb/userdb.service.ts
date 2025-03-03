@@ -9,6 +9,40 @@ import { UserdbEntity } from './entities/userdb.entity';
 import { DataSource, Repository } from 'typeorm';
 import { UpdateUserdbDto } from './dto/update-userdb.dto';
 
+
+interface ColumnInfo {
+  name: string;
+  type: string;
+  isPrimary: boolean;
+  isNullable?: boolean;
+  isUnique?: boolean;
+}
+
+interface ForeignKeyInfo {
+  columnName: string;
+  referencedTableName: string;
+  referencedColumnName: string;
+}
+
+interface TableInfo {
+  columns: ColumnInfo[];
+  foreignKeys?: ForeignKeyInfo[];
+}
+
+interface Schema {
+  [tableName: string]: TableInfo;
+}
+
+interface SchemaMetadata {
+  totalTables: number;
+  totalColumns: number;
+}
+
+interface SchemaResult {
+  metadata: SchemaMetadata;
+  schema: Schema;
+}
+
 @Injectable()
 export class UserdbService {
   private readonly logger = new Logger(UserdbService.name);
@@ -26,7 +60,7 @@ export class UserdbService {
     username: string,
     password: string,
     database: string,
-  ) {
+  ): Promise<SchemaResult> {
     try {
       const tempDataSource = new DataSource({
         type: provider,
@@ -36,58 +70,87 @@ export class UserdbService {
         password,
         database,
       });
-
+  
       await tempDataSource.initialize();
       const queryRunner = tempDataSource.createQueryRunner();
       const tables = await queryRunner.getTables();
-
-      // Create a more concise schema representation
-      const schema = {};
-
+  
+      const schema: Schema = {};
+  
+      const systemSchemas = [
+        'information_schema',
+        'sys',
+        'performance_schema',
+        'mysql',
+        'pg_catalog',
+        'SYS',
+        'SYSTEM',
+        'CTXSYS',
+      ];
+  
+      const systemTablePrefixes = [
+        'pg_',
+        '_pg_',
+        'sqlite_',
+      ];
+  
       for (const table of tables) {
+        // Exclude system tables and schemas
         if (
-          table.schema === 'sys' ||
-          table.schema === 'information_schema' ||
-          table.schema === 'performance_schema' ||
-          table.schema === 'mysql' ||
-          table.name.startsWith('pg_') ||
-          table.name.startsWith('_pg_') ||
-          table.schema === 'pg_catalog' ||
-          table.schema === 'SYS' ||
-          table.schema === 'SYSTEM' ||
-          table.schema === 'CTXSYS' ||
-          table.name === 'sqlite_master'
+          systemSchemas.includes(table.schema ?? '') || // Fallback to empty string if undefined
+          systemTablePrefixes.some(prefix => table.name.startsWith(prefix))
         ) {
           continue;
         }
-
-        // Get foreign key relationships
-        const foreignKeys = table.foreignKeys.map((fk) => ({
+  
+        // Simplify column information
+        const columns: ColumnInfo[] = table.columns.map((col) => {
+          const columnInfo: ColumnInfo = {
+            name: col.name,
+            type: col.type.split('(')[0], // Simplify type (e.g., "varchar(255)" → "varchar")
+            isPrimary: col.isPrimary,
+          };
+  
+          // Only include isNullable if it's false
+          if (!col.isNullable) {
+            columnInfo.isNullable = col.isNullable;
+          }
+  
+          // Only include isUnique if it's true
+          if (col.isUnique) {
+            columnInfo.isUnique = col.isUnique;
+          }
+  
+          return columnInfo;
+        });
+  
+        // Simplify foreign key relationships
+        const foreignKeys: ForeignKeyInfo[] = table.foreignKeys.map((fk) => ({
           columnName: fk.columnNames[0],
           referencedTableName: fk.referencedTableName,
-          referencedColumnNames: fk.referencedColumnNames,
+          referencedColumnName: fk.referencedColumnNames[0],
         }));
-
-        // Add table to schema with essential column information
+  
+        // Add table to schema
         schema[table.name] = {
-          columns: table.columns.map((col) => ({
-            name: col.name,
-            type: col.type,
-            isPrimary: col.isPrimary,
-            // Only include isNullable if it's false
-            ...(!col.isNullable && { isNullable: col.isNullable }),
-            // Only include isUnique if it's true
-            ...(col.isUnique && { isUnique: col.isUnique }),
-          })),
-          // Only add foreign keys if they exist
+          columns,
           ...(foreignKeys.length > 0 && { foreignKeys }),
         };
       }
-
+  
       await queryRunner.release();
       await tempDataSource.destroy();
-
-      return schema;
+  
+      // Add metadata for LLM context
+      const schemaMetadata: SchemaMetadata = {
+        totalTables: Object.keys(schema).length,
+        totalColumns: Object.values(schema).reduce((acc, table) => acc + table.columns.length, 0),
+      };
+  
+      return {
+        metadata: schemaMetadata,
+        schema,
+      };
     } catch (error) {
       this.logger.error(`Failed to inspect schema: ${error.message}`);
       throw error;
