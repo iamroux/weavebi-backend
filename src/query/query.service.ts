@@ -595,24 +595,22 @@ export class QueryService {
     }
   }
 
-  async getQueryCountFordashboard(dashboardId ){
+
+
+  async getQueryCountForDashboard(dashboardId: number): Promise<{ count: number }> {
     try {
-    const count = await this.queryRepo
-    .createQueryBuilder('query')
-    .innerJoin('query.dashboards', 'dashboard')
-    .where('dashboard.id = :dashboardId', { dashboardId })
-    .getCount();
-    return {count: count};
-    }
-    catch (error){
-      this.logger.error(
-        `Failed to fetch query count for dashboard ${dashboardId}: ${error.message}`,
+      const result = await this.queryRepo.query(
+        'SELECT COUNT(*)::int AS count FROM dashboard_query',
       );
-      throw new InternalServerErrorException('Couldnt fetch query count')
+  
+      return { count: result[0]?.count ?? 0 };
+    } catch (error) {
+      this.logger.error(`Failed to fetch query count for dashboard ${dashboardId}: ${error.message}`);
+      throw new InternalServerErrorException("Couldn't fetch query count");
     }
-
-
   }
+  
+  
 
 
   async getDashboardQueries(
@@ -724,7 +722,7 @@ export class QueryService {
         where: { id: queryId, userId },
       });
 
-      if (!query || query.database.user.id !== userId) {
+      if (!query) {
         throw new Error('Query not found or unauthorized');
       }
 
@@ -758,7 +756,7 @@ export class QueryService {
       });
 
       const insights = response.choices[0].message.content?.trim() ?? '';
-      return insights;
+      return {insights: insights}
     } catch (error) {
       this.logger.error(`Failed to get insights: ${error.message}`);
       throw new InternalServerErrorException('Failed to get insights');

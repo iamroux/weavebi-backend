@@ -185,7 +185,7 @@ async getQueryCountforDatabase(@Param('databaseId') databaseId:number, @Request 
 @ApiProperty({type: Number})
 @ApiResponse({type: Number})
 async getQueryCountforDashboard(@Param('dashboardId') dashboardId:number){
-  return await this.queryService.getQueryCountFordashboard(dashboardId);
+  return await this.queryService.getQueryCountForDashboard(dashboardId);
 
 }
 

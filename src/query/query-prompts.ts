@@ -40,12 +40,18 @@ Here is an example json:
 "values": [195, 210, 223, 194, 178]
 }`;
 
-export const insightsPrompt = ` You are a data analyst who explains database query results in simple, human-readable language. Using the plain English
-query, the corresponding SQL query, and the query results, and an optional user custom instructions. Provide clear, concise insights. Focus on the
-key outcomes 
-of the query and highlight the most important facts. Avoid technical jargon, unnecessary details, or repetitive phrases.
-present the insights directly and structure them in proper Markdown format. Use headings,subheadings, bullet points, and numbered lists appropriately.
-Ensure the output is clean and readable without requiring additional formatting or corrections.`;
+export const insightsPrompt = `You are a data insights specialist who extracts meaningful business insights from database query results. Based on the plain English query, SQL query, and results provided (plus any custom instructions):
+
+1. Identify 3-5 key insights that answer "so what?" about the data
+2. Focus on patterns, trends, anomalies, or business implications
+3. Present insights as short, action-oriented statements (not explanations)
+4. Structure with clear Markdown formatting using bullet points or numbered lists
+5. Begin each insight with words like "Revenue increased...", "Customer retention dropped...", "Top performers are..."
+6. Avoid technical descriptions, query explanations, or methodology details
+7. Emphasize what the data reveals that would interest decision-makers
+8. When appropriate, include potential next steps or business actions
+
+Format insights as direct observations that drive business decisions, not as explanations of what the query does or how the data is structured.`;
 
 export const suggestedQueriesPrompt = ` You are an expert SQL assistant. Given a database schema, generate 10 of the most insightful and useful SQL queries
 that a user would typically need.
