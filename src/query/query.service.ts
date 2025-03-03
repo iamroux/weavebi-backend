@@ -265,8 +265,7 @@ export class QueryService {
     createQueryDto: CreateQueryDto,
     save: boolean = false,
   ) {
-    console.log('test', save)
-    console.log(typeof save)
+ 
     try {
       if (save) {
         const existingQuery = await this.queryRepo.findOne({
@@ -285,25 +284,20 @@ export class QueryService {
           );
         }
       }
+      const database = await this.queryRepo.query(`SELECT * FROM databases WHERE "id"=$1 AND "userId"=$2`, [createQueryDto.databaseId, userId])
   
-      const database = await this.queryRepo
-        .createQueryBuilder('query')
-        .innerJoinAndSelect('query.database', 'database')
-        .where('database.id = :databaseId', {
-          databaseId: createQueryDto.databaseId,
-        })
-        .getOne();
-  
-      if (!database?.database) {
+      if (!database.length) {
         throw new NotFoundException('Database not found');
       }
   
       const { query, outputType } = createQueryDto;
       const { host, username, password, name, port, schema, provider } =
-        database.database;
+        database[0];
   
       let finalData: any;
       let generatedSqlQuery: string;
+
+
   
       if (outputType === 'tabular') {
         generatedSqlQuery = await this.generateSqlQuery(
@@ -312,6 +306,7 @@ export class QueryService {
           schema,
           provider,
         );
+
   
         finalData = await this.executeSqlQuery(
           generatedSqlQuery,
@@ -322,6 +317,7 @@ export class QueryService {
           port,
           provider,
         );
+
       } else {
         const promptType =
           outputType === 'descriptive'
