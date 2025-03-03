@@ -75,6 +75,14 @@ export class DashboardController {
     return this.dashboardService.findAll(userId, page, limit, search);
   }
 
+  @Get('count')
+  @ApiOperation({ summary: 'Get count of database for user' })
+  async getCount(@Request() req) {
+    const userId = req.user.id;
+    const count = await this.dashboardService.getCount(userId);
+    return count
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Fetch dashboard info' })
   @ApiProperty({})

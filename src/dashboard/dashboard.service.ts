@@ -70,6 +70,18 @@ export class DashboardService {
     }
   }
 
+  async getCount(userId: number): Promise<{ count: number }> {
+    try {
+      const count = await this.dashboardRepo.count({ where: { userId } });
+      return {count}
+    } catch (error) {
+      this.logger.error(
+        `Failed to retrieve database count for user ${userId}: ${error.message}`,
+      );
+      throw new InternalServerErrorException('Failed to retrieve database count');
+    }
+  }
+
   async findAll(
     userId: number,
     page: number = 1,
