@@ -3,7 +3,10 @@ import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    cors: true,
+    bodyParser: true
+  });
 
   const config = new DocumentBuilder()
     .setTitle(process.env.API_TITLE ?? 'WeaveBI')
@@ -20,6 +23,7 @@ async function bootstrap() {
       persistAuthorization: true,
     },
   });
+
 
   await app.listen(process.env.APP_PORT ?? 3000);
 }
