@@ -46,21 +46,16 @@ export class UserdbService {
 
       for (const table of tables) {
         if (
-          // PostgreSQL
-          table.name.startsWith('pg_') ||
-          table.name.startsWith('_pg_') ||
-          table.schema === 'information_schema' ||
-          table.schema === 'pg_catalog' ||
-          // MySQL / MariaDB
-          table.schema === 'mysql' ||
-          // MSSQL
           table.schema === 'sys' ||
           table.schema === 'information_schema' ||
-          // Oracle
+          table.schema === 'performance_schema' ||
+          table.schema === 'mysql' ||
+          table.name.startsWith('pg_') ||
+          table.name.startsWith('_pg_') ||
+          table.schema === 'pg_catalog' ||
           table.schema === 'SYS' ||
           table.schema === 'SYSTEM' ||
           table.schema === 'CTXSYS' ||
-          // SQLite
           table.name === 'sqlite_master'
         ) {
           continue;
