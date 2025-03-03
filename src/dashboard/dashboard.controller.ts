@@ -10,6 +10,7 @@ import {
   Request,
   Req,
   Query,
+  Put,
 } from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
 import { CreateDashboardDto } from './dto/create-dashboard.dto';
@@ -23,6 +24,7 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { MessageDto } from 'src/core/dtos/generic-response.dto';
+import { UpdateDashboardQueryPositionDto } from './dto/update-dashboard-query-positions.dto';
 
 @Controller('dashboard')
 @UseGuards(AuthGuard)
@@ -118,6 +120,15 @@ export class DashboardController {
       updateDashboardDto,
     );
     return { message };
+  }
+
+  @Put('position')
+  @ApiOperation({summary: 'Update query positions on dashboard'})
+  @ApiResponse({type: MessageDto})
+  @ApiProperty({type: UpdateDashboardQueryPositionDto})
+  async updatePosition(@Body() dto: UpdateDashboardQueryPositionDto){
+    const message = await this.dashboardService.updatePosition(dto);
+    return {message}
   }
 
   @Get('info/:id')

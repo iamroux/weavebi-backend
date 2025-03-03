@@ -38,6 +38,7 @@ export class QueryEntity {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
   @Column()
   databaseId: number;
 

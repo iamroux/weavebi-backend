@@ -12,6 +12,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
+  PrimaryColumn,
 } from 'typeorm';
 
 @Entity('dashboards')
@@ -53,7 +54,48 @@ export class DashboardEntity {
     onDelete: 'CASCADE',
   })
   queries: QueryEntity[];
+
+  @OneToMany(
+    () => DashboardQueryPositionEntity,
+    (position) => position.dashboard
+  )
+  positions: DashboardQueryPositionEntity[];
+  
 }
+
+
+@Entity('dashboard_query_positions')
+export class DashboardQueryPositionEntity {
+  @PrimaryColumn()
+  dashboardId: number;
+
+  @PrimaryColumn()
+  queryId: number;
+
+  @Column({ type: 'int' })
+  x: number;
+
+  @Column({ type: 'int' })
+  y: number;
+
+  @Column({ type: 'int' })
+  z: number;
+
+  @Column({ type: 'int' })
+  h: number;
+
+  @ManyToOne(() => DashboardEntity, (dashboard) => dashboard.positions, {
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'dashboardId' })
+  dashboard: DashboardEntity;
+
+  @ManyToOne(() => QueryEntity, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'queryId' })
+  query: QueryEntity;
+}
+
+
 
 @Entity('tags')
 export class TagEntity {

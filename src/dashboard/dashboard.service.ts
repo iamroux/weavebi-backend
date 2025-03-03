@@ -13,6 +13,7 @@ import {
   TaggableEntity,
 } from './entities/dashboard.entity';
 import { Repository } from 'typeorm';
+import { UpdateDashboardQueryPositionDto } from './dto/update-dashboard-query-positions.dto';
 
 @Injectable()
 export class DashboardService {
@@ -199,6 +200,55 @@ export class DashboardService {
     } catch (error) {
       this.logger.error(`Failed to update dashboard ${id}: ${error.message}`);
       throw new InternalServerErrorException("Couldn't update dashboard");
+    }
+  }
+
+  async updatePosition(
+    dto: UpdateDashboardQueryPositionDto,
+  ): Promise<{ message: string }> {
+
+    const {dashboardId, queryId, x, y, z, h} = dto;
+    try {
+      // Check if position already exists using query builder
+      const existingPosition = await this.dashboardRepo
+        .createQueryBuilder()
+        .select("position")
+        .from("dashboard_query_positions", "position")
+        .where("position.dashboardId = :dashboardId", { dashboardId })
+        .andWhere("position.queryId = :queryId", { queryId })
+        .getRawOne();
+      
+      if (existingPosition) {
+        // Update position if it exists
+        await this.dashboardRepo
+          .createQueryBuilder()
+          .update("dashboard_query_positions")
+          .set({ x, y, z, h })
+          .where("dashboardId = :dashboardId", { dashboardId })
+          .andWhere("queryId = :queryId", { queryId })
+          .execute();
+        
+        return { message: 'Position updated successfully' };
+      }
+      
+      // Insert new position if it does not exist
+      await this.dashboardRepo
+        .createQueryBuilder()
+        .insert()
+        .into("dashboard_query_positions")
+        .values({
+          dashboardId,
+          queryId,
+          x,
+          y,
+          z,
+          h
+        })
+        .execute();
+      
+      return { message: 'Position created successfully' };
+    } catch (error) {
+      throw new InternalServerErrorException(`Failed to update dashboard ${dashboardId}: ${error.message}`);
     }
   }
 
