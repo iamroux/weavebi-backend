@@ -265,6 +265,8 @@ export class QueryService {
     createQueryDto: CreateQueryDto,
     save: boolean = false,
   ) {
+    console.log('test', save)
+    console.log(typeof save)
     try {
       if (save) {
         const existingQuery = await this.queryRepo.findOne({

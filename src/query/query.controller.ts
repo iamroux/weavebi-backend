@@ -9,6 +9,7 @@ import {
   UseGuards,
   Request,
   Query,
+  ParseBoolPipe,
 } from '@nestjs/common';
 import { QueryService } from './query.service';
 import { CreateQueryDto } from './dto/create-query.dto';
@@ -79,7 +80,7 @@ export class QueryController {
   async directRunQuery(
     @Request() req,
     @Body() createQueryDto: CreateQueryDto,
-    @Query('save') save: boolean,
+    @Query('save', ParseBoolPipe) save: boolean,
   ) {
     const userId = req.user.id;
     return await this.queryService.directRunQuery(userId, createQueryDto, save);
