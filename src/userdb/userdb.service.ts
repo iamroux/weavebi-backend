@@ -219,6 +219,19 @@ export class UserdbService {
     }
   }
 
+
+  async getCount(userId: number): Promise<{ count: number }> {
+    try {
+      const count = await this.userDbRepo.count({ where: { userId } });
+      return {count}
+    } catch (error) {
+      this.logger.error(
+        `Failed to retrieve database count for user ${userId}: ${error.message}`,
+      );
+      throw new InternalServerErrorException('Failed to retrieve database count');
+    }
+  }
+
   async update(userId: number, id: number, updateUserdbDto: UpdateUserdbDto) {
     try {
       const existingDatabase = await this.userDbRepo.findOne({
