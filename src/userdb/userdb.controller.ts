@@ -56,7 +56,7 @@ export class UserdbController {
   async getCount(@Request() req) {
     const userId = req.user.id;
     const count = await this.userdbService.getCount(userId);
-    return count
+    return count;
   }
 
   @Get()

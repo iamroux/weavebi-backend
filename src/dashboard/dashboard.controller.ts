@@ -82,7 +82,7 @@ export class DashboardController {
   async getCount(@Request() req) {
     const userId = req.user.id;
     const count = await this.dashboardService.getCount(userId);
-    return count
+    return count;
   }
 
   @Get(':id')
@@ -123,12 +123,12 @@ export class DashboardController {
   }
 
   @Put('position')
-  @ApiOperation({summary: 'Update query positions on dashboard'})
-  @ApiResponse({type: MessageDto})
-  @ApiProperty({type: UpdateDashboardQueryPositionDto})
-  async updatePosition(@Body() dto: UpdateDashboardQueryPositionDto){
+  @ApiOperation({ summary: 'Update query positions on dashboard' })
+  @ApiResponse({ type: MessageDto })
+  @ApiProperty({ type: UpdateDashboardQueryPositionDto })
+  async updatePosition(@Body() dto: UpdateDashboardQueryPositionDto) {
     const message = await this.dashboardService.updatePosition(dto);
-    return {message}
+    return { message };
   }
 
   @Get('info/:id')

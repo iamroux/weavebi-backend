@@ -171,26 +171,25 @@ export class QueryController {
     );
   }
 
-@Get('count-database')
-@ApiOperation({summary: 'Get count of queries belonging to a database'})
-@ApiProperty({type: Number})
-@ApiResponse({type: Number})
-async getQueryCountforDatabase(@Param('databaseId') databaseId:number, @Request () req){
-  const userId = req.userId;
-  return await this.queryService.getQueryCountForDatabase(databaseId, userId);
+  @Get('count-database')
+  @ApiOperation({ summary: 'Get count of queries belonging to a database' })
+  @ApiProperty({ type: Number })
+  @ApiResponse({ type: Number })
+  async getQueryCountforDatabase(
+    @Param('databaseId') databaseId: number,
+    @Request() req,
+  ) {
+    const userId = req.userId;
+    return await this.queryService.getQueryCountForDatabase(databaseId, userId);
+  }
 
-}
-
-@Get('count-dashboard')
-@ApiOperation({summary: 'Get count of queries belonging to a dashboard'})
-@ApiProperty({type: Number})
-@ApiResponse({type: Number})
-async getQueryCountforDashboard(@Param('dashboardId') dashboardId:number){
-  return await this.queryService.getQueryCountForDashboard(dashboardId);
-
-}
-
-
+  @Get('count-dashboard')
+  @ApiOperation({ summary: 'Get count of queries belonging to a dashboard' })
+  @ApiProperty({ type: Number })
+  @ApiResponse({ type: Number })
+  async getQueryCountforDashboard(@Param('dashboardId') dashboardId: number) {
+    return await this.queryService.getQueryCountForDashboard(dashboardId);
+  }
 
   @Get('dashboard-queries/:dashboardId')
   @ApiOperation({ summary: 'Get all queries belonging to a dashboard.' })

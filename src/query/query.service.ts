@@ -75,7 +75,7 @@ export class QueryService {
         'MERGE',
         'CALL',
         'LOCK',
-        'TRUNCATE'
+        'TRUNCATE',
       ];
 
       const dmlRegex = new RegExp(`\\b(${dmlKeywords.join('|')})\\b`, 'i');
@@ -265,7 +265,6 @@ export class QueryService {
     createQueryDto: CreateQueryDto,
     save: boolean = false,
   ) {
- 
     try {
       if (save) {
         const existingQuery = await this.queryRepo.findOne({
@@ -277,28 +276,29 @@ export class QueryService {
             userId: userId,
           },
         });
-  
+
         if (existingQuery) {
           throw new BadRequestException(
             'Query with the same parameters already exists',
           );
         }
       }
-      const database = await this.queryRepo.query(`SELECT * FROM databases WHERE "id"=$1 AND "userId"=$2`, [createQueryDto.databaseId, userId])
-  
+      const database = await this.queryRepo.query(
+        `SELECT * FROM databases WHERE "id"=$1 AND "userId"=$2`,
+        [createQueryDto.databaseId, userId],
+      );
+
       if (!database.length) {
         throw new NotFoundException('Database not found');
       }
-  
+
       const { query, outputType } = createQueryDto;
       const { host, username, password, name, port, schema, provider } =
         database[0];
-  
+
       let finalData: any;
       let generatedSqlQuery: string;
 
-
-  
       if (outputType === 'tabular') {
         generatedSqlQuery = await this.generateSqlQuery(
           QueryPrompts.primaryPrompt,
@@ -307,7 +307,6 @@ export class QueryService {
           provider,
         );
 
-  
         finalData = await this.executeSqlQuery(
           generatedSqlQuery,
           host,
@@ -317,13 +316,12 @@ export class QueryService {
           port,
           provider,
         );
-
       } else {
         const promptType =
           outputType === 'descriptive'
             ? QueryPrompts.primaryPrompt
             : QueryPrompts.graphicalPrompt;
-  
+
         generatedSqlQuery = await this.generateSqlQuery(
           promptType,
           query,
@@ -331,7 +329,7 @@ export class QueryService {
           provider,
           outputType,
         );
-  
+
         const dataFromDatabase = await this.executeSqlQuery(
           generatedSqlQuery,
           host,
@@ -341,7 +339,7 @@ export class QueryService {
           port,
           provider,
         );
-  
+
         finalData = await this.processQueryResults(
           query,
           generatedSqlQuery,
@@ -349,7 +347,7 @@ export class QueryService {
           outputType,
         );
       }
-  
+
       const queryEntity = this.queryRepo.create({
         name: createQueryDto.name,
         query: createQueryDto.query,
@@ -359,12 +357,12 @@ export class QueryService {
         data: finalData,
         generatedSqlQuery: generatedSqlQuery,
       });
-  
+
       if (save) {
         await this.queryRepo.save(queryEntity);
-        this.logger.log('query saved')
+        this.logger.log('query saved');
       }
-  
+
       return {
         id: queryEntity.id,
         name: queryEntity.name,
@@ -384,7 +382,6 @@ export class QueryService {
           );
     }
   }
-  
 
   async create(userId: number, createQueryDto: CreateQueryDto) {
     try {
@@ -573,34 +570,36 @@ export class QueryService {
     }
   }
 
-  async getQueryCountForDatabase(databaseId:number, userid:number){
+  async getQueryCountForDatabase(databaseId: number, userid: number) {
     try {
-    const count = await this.queryRepo.count({where: {userId:userid, databaseId:databaseId}})
-    return {count: count}
-    }
-    catch(error){
-      this.logger.error(`Failed to fetch count of queries ${databaseId}: ${error.message}`)
-      throw new InternalServerErrorException('Couldnt fetch query count')
+      const count = await this.queryRepo.count({
+        where: { userId: userid, databaseId: databaseId },
+      });
+      return { count: count };
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch count of queries ${databaseId}: ${error.message}`,
+      );
+      throw new InternalServerErrorException('Couldnt fetch query count');
     }
   }
 
-
-
-  async getQueryCountForDashboard(dashboardId: number): Promise<{ count: number }> {
+  async getQueryCountForDashboard(
+    dashboardId: number,
+  ): Promise<{ count: number }> {
     try {
       const result = await this.queryRepo.query(
         'SELECT COUNT(*)::int AS count FROM dashboard_query',
       );
-  
+
       return { count: result[0]?.count ?? 0 };
     } catch (error) {
-      this.logger.error(`Failed to fetch query count for dashboard ${dashboardId}: ${error.message}`);
+      this.logger.error(
+        `Failed to fetch query count for dashboard ${dashboardId}: ${error.message}`,
+      );
       throw new InternalServerErrorException("Couldn't fetch query count");
     }
   }
-  
-  
-
 
   async getDashboardQueries(
     dashboardId: number,
@@ -727,7 +726,7 @@ export class QueryService {
         Data From Database: ${JSON.stringify(data)}`;
 
       if (search) {
-        prompt += QueryPrompts.insightsPromptUseWeb
+        prompt += QueryPrompts.insightsPromptUseWeb;
       }
 
       if (customInstructions) {
@@ -744,7 +743,7 @@ export class QueryService {
       });
 
       const insights = response.choices[0].message.content?.trim() ?? '';
-      return {insights: insights}
+      return { insights: insights };
     } catch (error) {
       this.logger.error(`Failed to get insights: ${error.message}`);
       throw new InternalServerErrorException('Failed to get insights');

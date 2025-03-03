@@ -9,7 +9,6 @@ import { UserdbEntity } from './entities/userdb.entity';
 import { DataSource, Repository } from 'typeorm';
 import { UpdateUserdbDto } from './dto/update-userdb.dto';
 
-
 interface ColumnInfo {
   name: string;
   type: string;
@@ -70,13 +69,13 @@ export class UserdbService {
         password,
         database,
       });
-  
+
       await tempDataSource.initialize();
       const queryRunner = tempDataSource.createQueryRunner();
       const tables = await queryRunner.getTables();
-  
+
       const schema: Schema = {};
-  
+
       const systemSchemas = [
         'information_schema',
         'sys',
@@ -87,22 +86,18 @@ export class UserdbService {
         'SYSTEM',
         'CTXSYS',
       ];
-  
-      const systemTablePrefixes = [
-        'pg_',
-        '_pg_',
-        'sqlite_',
-      ];
-  
+
+      const systemTablePrefixes = ['pg_', '_pg_', 'sqlite_'];
+
       for (const table of tables) {
         // Exclude system tables and schemas
         if (
           systemSchemas.includes(table.schema ?? '') || // Fallback to empty string if undefined
-          systemTablePrefixes.some(prefix => table.name.startsWith(prefix))
+          systemTablePrefixes.some((prefix) => table.name.startsWith(prefix))
         ) {
           continue;
         }
-  
+
         // Simplify column information
         const columns: ColumnInfo[] = table.columns.map((col) => {
           const columnInfo: ColumnInfo = {
@@ -110,43 +105,46 @@ export class UserdbService {
             type: col.type.split('(')[0], // Simplify type (e.g., "varchar(255)" → "varchar")
             isPrimary: col.isPrimary,
           };
-  
+
           // Only include isNullable if it's false
           if (!col.isNullable) {
             columnInfo.isNullable = col.isNullable;
           }
-  
+
           // Only include isUnique if it's true
           if (col.isUnique) {
             columnInfo.isUnique = col.isUnique;
           }
-  
+
           return columnInfo;
         });
-  
+
         // Simplify foreign key relationships
         const foreignKeys: ForeignKeyInfo[] = table.foreignKeys.map((fk) => ({
           columnName: fk.columnNames[0],
           referencedTableName: fk.referencedTableName,
           referencedColumnName: fk.referencedColumnNames[0],
         }));
-  
+
         // Add table to schema
         schema[table.name] = {
           columns,
           ...(foreignKeys.length > 0 && { foreignKeys }),
         };
       }
-  
+
       await queryRunner.release();
       await tempDataSource.destroy();
-  
+
       // Add metadata for LLM context
       const schemaMetadata: SchemaMetadata = {
         totalTables: Object.keys(schema).length,
-        totalColumns: Object.values(schema).reduce((acc, table) => acc + table.columns.length, 0),
+        totalColumns: Object.values(schema).reduce(
+          (acc, table) => acc + table.columns.length,
+          0,
+        ),
       };
-  
+
       return {
         metadata: schemaMetadata,
         schema,
@@ -277,16 +275,17 @@ export class UserdbService {
     }
   }
 
-
   async getCount(userId: number): Promise<{ count: number }> {
     try {
       const count = await this.userDbRepo.count({ where: { userId } });
-      return {count}
+      return { count };
     } catch (error) {
       this.logger.error(
         `Failed to retrieve database count for user ${userId}: ${error.message}`,
       );
-      throw new InternalServerErrorException('Failed to retrieve database count');
+      throw new InternalServerErrorException(
+        'Failed to retrieve database count',
+      );
     }
   }
 

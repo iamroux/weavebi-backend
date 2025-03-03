@@ -5,7 +5,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     cors: true,
-    bodyParser: true
+    bodyParser: true,
   });
 
   const config = new DocumentBuilder()
@@ -23,7 +23,6 @@ async function bootstrap() {
       persistAuthorization: true,
     },
   });
-
 
   await app.listen(process.env.APP_PORT ?? 3000);
 }

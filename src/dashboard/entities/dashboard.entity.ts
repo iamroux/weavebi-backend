@@ -57,12 +57,10 @@ export class DashboardEntity {
 
   @OneToMany(
     () => DashboardQueryPositionEntity,
-    (position) => position.dashboard
+    (position) => position.dashboard,
   )
   positions: DashboardQueryPositionEntity[];
-  
 }
-
 
 @Entity('dashboard_query_positions')
 export class DashboardQueryPositionEntity {
@@ -94,8 +92,6 @@ export class DashboardQueryPositionEntity {
   @JoinColumn({ name: 'queryId' })
   query: QueryEntity;
 }
-
-
 
 @Entity('tags')
 export class TagEntity {
