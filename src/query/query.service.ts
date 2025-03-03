@@ -64,7 +64,7 @@ export class QueryService {
       const cleanResponse = response.choices[0].message.content?.trim() ?? '';
       this.logger.debug(`Generated SQL query: ${cleanResponse}`);
 
-      // Security check for DML operations (nakli guardrails)
+      // Security check for DML operations (nakli guardrails but works)
       const dmlKeywords = [
         'INSERT',
         'UPDATE',
@@ -77,11 +77,9 @@ export class QueryService {
         'LOCK',
         'TRUNCATE'
       ];
-      if (
-        dmlKeywords.some((keyword) =>
-          cleanResponse.toUpperCase().includes(keyword),
-        )
-      ) {
+
+      const dmlRegex = new RegExp(`\\b(${dmlKeywords.join('|')})\\b`, 'i');
+      if (dmlRegex.test(cleanResponse)) {
         this.logger.warn(
           'Generated SQL query contains DML keywords. Query execution blocked',
         );
@@ -262,7 +260,6 @@ export class QueryService {
       );
     }
   }
-
   async directRunQuery(
     userId: number,
     createQueryDto: CreateQueryDto,
@@ -279,14 +276,14 @@ export class QueryService {
             userId: userId,
           },
         });
-
+  
         if (existingQuery) {
           throw new BadRequestException(
             'Query with the same parameters already exists',
           );
         }
       }
-
+  
       const database = await this.queryRepo
         .createQueryBuilder('query')
         .innerJoinAndSelect('query.database', 'database')
@@ -294,29 +291,18 @@ export class QueryService {
           databaseId: createQueryDto.databaseId,
         })
         .getOne();
-
+  
       if (!database?.database) {
         throw new NotFoundException('Database not found');
       }
-
-      // Create query entity but don't save yet
-      const queryEntity = this.queryRepo.create({
-        name: createQueryDto.name,
-        query: createQueryDto.query,
-        outputType: createQueryDto.outputType,
-        databaseId: createQueryDto.databaseId,
-        userId: userId,
-      });
-
-      // Extract required fields
-      const { query, outputType } = queryEntity;
+  
+      const { query, outputType } = createQueryDto;
       const { host, username, password, name, port, schema, provider } =
         database.database;
-
+  
       let finalData: any;
       let generatedSqlQuery: string;
-
-      // Generate SQL and process results based on output type
+  
       if (outputType === 'tabular') {
         generatedSqlQuery = await this.generateSqlQuery(
           QueryPrompts.primaryPrompt,
@@ -324,7 +310,7 @@ export class QueryService {
           schema,
           provider,
         );
-
+  
         finalData = await this.executeSqlQuery(
           generatedSqlQuery,
           host,
@@ -335,12 +321,11 @@ export class QueryService {
           provider,
         );
       } else {
-        // For descriptive and graphical outputs
         const promptType =
           outputType === 'descriptive'
             ? QueryPrompts.primaryPrompt
             : QueryPrompts.graphicalPrompt;
-
+  
         generatedSqlQuery = await this.generateSqlQuery(
           promptType,
           query,
@@ -348,7 +333,7 @@ export class QueryService {
           provider,
           outputType,
         );
-
+  
         const dataFromDatabase = await this.executeSqlQuery(
           generatedSqlQuery,
           host,
@@ -358,7 +343,7 @@ export class QueryService {
           port,
           provider,
         );
-
+  
         finalData = await this.processQueryResults(
           query,
           generatedSqlQuery,
@@ -366,17 +351,22 @@ export class QueryService {
           outputType,
         );
       }
-
-      // Update query entity with results
-      queryEntity.data = finalData;
-      queryEntity.generatedSqlQuery = generatedSqlQuery;
-
-      // Save if requested
+  
+      const queryEntity = this.queryRepo.create({
+        name: createQueryDto.name,
+        query: createQueryDto.query,
+        outputType: createQueryDto.outputType,
+        databaseId: createQueryDto.databaseId,
+        userId: userId,
+        data: finalData,
+        generatedSqlQuery: generatedSqlQuery,
+      });
+  
       if (save) {
         await this.queryRepo.save(queryEntity);
+        this.logger.log('query saved')
       }
-
-      // Return cleaned response
+  
       return {
         id: queryEntity.id,
         name: queryEntity.name,
@@ -396,6 +386,7 @@ export class QueryService {
           );
     }
   }
+  
 
   async create(userId: number, createQueryDto: CreateQueryDto) {
     try {

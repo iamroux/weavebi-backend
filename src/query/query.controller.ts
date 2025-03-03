@@ -66,7 +66,7 @@ export class QueryController {
 
   @Post('save-run')
   @ApiOperation({
-    summary: 'Save and run a query by providing query info.',
+    summary: 'Run and/or save a query by providing query info.',
   })
   @ApiResponse({ type: QueryEntity })
   @ApiBody({ type: CreateQueryDto })
