@@ -727,8 +727,7 @@ export class QueryService {
         Data From Database: ${JSON.stringify(data)}`;
 
       if (search) {
-        prompt +=
-          '\nUse your knowledge and reliable internet sources to analyze and compare this data. Provide additional insights, trends, or actionable suggestions based on the query results and any relevant external information you can find online. Ensure that your insights are well-supported and cite credible sources where applicable.';
+        prompt += QueryPrompts.insightsPromptUseWeb
       }
 
       if (customInstructions) {

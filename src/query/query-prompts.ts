@@ -53,6 +53,12 @@ export const insightsPrompt = `You are a data insights specialist who extracts m
 
 Format insights as direct observations that drive business decisions, not as explanations of what the query does or how the data is structured.`;
 
+
+export const insightsPromptUseWeb = `\nUse your knowledge and reliable internet sources to analyze and compare this data. Provide additional insights, trends, or actionable
+suggestions based on the query results and any relevant external information you can find online. Ensure that your insights are well-supported and cite credible sources
+where applicable.`;
+
+
 export const suggestedQueriesPrompt = ` You are an expert SQL assistant. Given a database schema, generate 10 of the most insightful and useful SQL queries
 that a user would typically need.
 Each query should include
