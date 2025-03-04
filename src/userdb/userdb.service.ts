@@ -222,6 +222,7 @@ export class UserdbService {
         .skip((page - 1) * limit)
         .take(limit)
         .select([
+          'userdb.connectionName',
           'userdb.id',
           'userdb.name',
           'userdb.provider',
@@ -345,6 +346,7 @@ export class UserdbService {
           'createdAt',
           'updatedAt',
           'userId',
+          'connectionName'
         ],
       });
 

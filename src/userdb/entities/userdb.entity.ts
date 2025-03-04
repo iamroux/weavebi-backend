@@ -17,6 +17,9 @@ export class UserdbEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Column({nullable: true})
+  connectionName: string;
+
   @Column()
   provider: string;
 
