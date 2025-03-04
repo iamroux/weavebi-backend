@@ -20,6 +20,9 @@ export class UserdbEntity {
   @Column({nullable: true})
   connectionName: string;
 
+  @Column({nullable: true})
+  description: string
+
   @Column()
   provider: string;
 

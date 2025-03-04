@@ -7,7 +7,11 @@ export class CreateUserdbDto {
   @ApiProperty()
   @Optional()
   connectionName: string;
-  
+
+  @ApiProperty()
+  @Optional()
+  description: string;
+
   @ApiProperty()
   @IsNotEmpty()
   provider: string;
