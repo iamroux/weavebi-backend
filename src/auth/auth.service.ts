@@ -49,6 +49,7 @@ export class AuthService {
     return user;
   }
 
+
   async create(createAuthDto: CreateAuthDto) {
     try {
       const existingUser = await this.getUserByEmail(createAuthDto.email);
@@ -60,9 +61,14 @@ export class AuthService {
       return 'User created successfully.';
     } catch (error) {
       this.logger.error(`Failed to create user: ${error.message}`);
+  
+      if (error instanceof ConflictException) {
+        throw error;
+      }
       throw new Error('Failed to create user');
     }
   }
+  
 
   async login(data: LoginDto) {
     const { email, password } = data;
