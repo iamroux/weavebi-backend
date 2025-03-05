@@ -15,6 +15,7 @@ import { DataSource, Repository } from 'typeorm';
 import OpenAI from 'openai';
 import * as QueryPrompts from './query-prompts';
 import { DashboardEntity } from '../dashboard/entities/dashboard.entity';
+import { PasswordEncryptionService } from './encryption.service';
 
 // Global Constants
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -29,7 +30,8 @@ export class QueryService {
 
   constructor(
     @InjectRepository(QueryEntity)
-    private queryRepo: Repository<QueryEntity>,
+    private readonly queryRepo: Repository<QueryEntity>,
+    private readonly passwordEncryptionService: PasswordEncryptionService
   ) {}
 
   // Helper method to generate SQL query using OpenAI
@@ -180,7 +182,8 @@ export class QueryService {
 
       // Extract query and database details
       const { query, outputType } = queryEntity;
-      const { host, username, password, name, port, schema, provider } =
+      const password = await this.passwordEncryptionService.decrypt(queryEntity.database.password);
+      const { host, username, name, port, schema, provider } =
         queryEntity.database;
 
       let finalData: any;
@@ -293,8 +296,8 @@ export class QueryService {
       }
 
       const { query, outputType } = createQueryDto;
-      const { host, username, password, name, port, schema, provider } =
-        database[0];
+      const password = await this.passwordEncryptionService.decrypt(database[0].password);
+      const { host, username,  name, port, schema, provider } = database[0];
 
       let finalData: any;
       let generatedSqlQuery: string;
