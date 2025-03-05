@@ -207,7 +207,7 @@ export class DashboardService {
 
   async updatePosition(
     dto: UpdateDashboardQueryPositionDto,
-  ): Promise<{ message: string }> {
+  ) {
     const { dashboardId, queryId, x, y, z, h } = dto;
     try {
       // Check if position already exists using query builder
@@ -229,7 +229,7 @@ export class DashboardService {
           .andWhere('queryId = :queryId', { queryId })
           .execute();
 
-        return { message: 'Position updated successfully' };
+        return'Position updated successfully';
       }
 
       // Insert new position if it does not exist
@@ -247,7 +247,7 @@ export class DashboardService {
         })
         .execute();
 
-      return { message: 'Position created successfully' };
+      return'Position created successfully';
     } catch (error) {
       throw new InternalServerErrorException(
         `Failed to update dashboard ${dashboardId}: ${error.message}`,
@@ -274,15 +274,43 @@ export class DashboardService {
   async getDashboardInfo(id: number, userId: number) {
     try {
       const dashboard = await this.dashboardRepo.findOne({
-        where: { id },
-        relations: ['queries'],
+        where: { id, userId },
+        relations: ['queries', 'positions', 'positions.query'],
       });
-
+  
       if (!dashboard) {
-        return 'Dashboard not found';
+        return { message: 'dashboard not found' };
       }
-
-      return dashboard;
+  
+      // Map positions to their corresponding queries
+      const queriesWithPositions = dashboard.queries.map((query) => {
+        const position = dashboard.positions.find(
+          (pos) => pos.queryId === query.id
+        );
+  
+        return {
+          ...query,
+          position: position
+            ? {
+                x: position.x,
+                y: position.y,
+                z: position.z,
+                h: position.h,
+              }
+            : null,
+        };
+      });
+  
+      return {
+        id: dashboard.id,
+        name: dashboard.name,
+        description: dashboard.description,
+        createdAt: dashboard.createdAt,
+        updatedAt: dashboard.updatedAt,
+        databaseId: dashboard.databaseId,
+        userId: dashboard.userId,
+        queries: queriesWithPositions,
+      };
     } catch (error) {
       this.logger.error(`Failed to fetch dashboard ${id}: ${error.message}`);
       throw new InternalServerErrorException("Couldn't fetch dashboard");
