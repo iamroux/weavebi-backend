@@ -74,10 +74,10 @@ export class AuthService {
     const { email, password } = data;
     try {
       const user = await this.getUserByEmail(email);
-      if (!user) throw new NotFoundException('User not found');
+      if (!user) throw new NotFoundException('Invalid email');
 
       const match = await argon2.verify(user.password, password);
-      if (!match) throw new UnauthorizedException('Bad credentials');
+      if (!match) throw new UnauthorizedException('Invalid password');
 
       const payload = {
         id: user.id,

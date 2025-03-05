@@ -25,7 +25,7 @@ jobs:
             cd weavebi
             git pull origin main
             docker compose down
-            docker compose up --build -deploy
+            docker compose up --build -d
             docker system prune -f
             
             exit
