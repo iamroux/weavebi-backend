@@ -19,6 +19,7 @@ import {
   scrypt 
 } from 'crypto';
 import { promisify } from 'util';
+import { EncryptionService } from 'src/query/encryption.service';
 
 
 @Entity('databases')
@@ -73,46 +74,19 @@ export class UserdbEntity {
   @OneToMany(() => DashboardEntity, (dashboard) => dashboard.database)
   dashboards: DashboardEntity[];
 
-  private getEncryptionSalt(): string {
-    const salt = process.env.ENCRYPTION_SALT;
-    if(!salt){
-      throw new Error('namak haraam')
-    }
-    return salt;
+  private static encryptionService: EncryptionService;
+  public static setEncryptoinService(service: EncryptionService){
+    UserdbEntity.encryptionService=service
   }
 
-  private async deriveKey(password: string): Promise<Buffer> {
-    const salt = this.getEncryptionSalt();
-    return await promisify(scrypt)(password, salt, 32) as Buffer;
-  }
-
-  private async encrypt(text: string): Promise<string> {
-    try {
-      const iv = randomBytes(16);
-      const encryptionPassword = process.env.ENCRYPTION_PASSWORD;
-      if (!encryptionPassword){
-        throw new Error('Encryption password not found in')
-      }
-      const key = await this.deriveKey(encryptionPassword);
-      const cipher = createCipheriv('aes-256-ctr', key, iv);
-      const encryptedText = Buffer.concat([
-        cipher.update(text, 'utf8'),
-        cipher.final()
-      ]);
-
-      return `${iv.toString('hex')}:${encryptedText.toString('hex')}`;
-    } catch (error) {
-      console.error('Encryption error:', error);
-      throw error;
-    }
-  }
 
 
   @BeforeInsert()
   @BeforeUpdate()
-  async encryptPassword() {
-    if (this.password && !this.password.includes(':')) {
-      this.password = await this.encrypt(this.password);
+async encryptPassword() {
+    // Only encrypt if the password is not already encrypted and the service is available
+    if (this.password && !this.password.includes(':') && UserdbEntity.encryptionService) {
+      this.password = await UserdbEntity.encryptionService.encrypt(this.password);
     }
   }
 }
