@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -69,89 +70,143 @@ export class UserdbService {
         password,
         database,
       });
-
-      await tempDataSource.initialize();
-      const queryRunner = tempDataSource.createQueryRunner();
-      const tables = await queryRunner.getTables();
-
-      const schema: Schema = {};
-
-      const systemSchemas = [
-        'information_schema',
-        'sys',
-        'performance_schema',
-        'mysql',
-        'pg_catalog',
-        'SYS',
-        'SYSTEM',
-        'CTXSYS',
-      ];
-
-      const systemTablePrefixes = ['pg_', '_pg_', 'sqlite_'];
-
-      for (const table of tables) {
-        // Exclude system tables and schemas
-        if (
-          systemSchemas.includes(table.schema ?? '') || // Fallback to empty string if undefined
-          systemTablePrefixes.some((prefix) => table.name.startsWith(prefix))
-        ) {
-          continue;
+  
+      try {
+        await tempDataSource.initialize();
+      } catch (initError) {
+        // Handle connection initialization errors
+        if (initError.code === '28P01' || initError.code === '28000') {
+          throw new BadRequestException('Authentication failed', {
+            description: 'Invalid username or password for database connection',
+          });
         }
-
-        // Simplify column information
-        const columns: ColumnInfo[] = table.columns.map((col) => {
-          const columnInfo: ColumnInfo = {
-            name: col.name,
-            type: col.type.split('(')[0], // Simplify type (e.g., "varchar(255)" → "varchar")
-            isPrimary: col.isPrimary,
-          };
-
-          // Only include isNullable if it's false
-          if (!col.isNullable) {
-            columnInfo.isNullable = col.isNullable;
-          }
-
-          // Only include isUnique if it's true
-          if (col.isUnique) {
-            columnInfo.isUnique = col.isUnique;
-          }
-
-          return columnInfo;
+  
+        if (initError.code === '3D000' || initError.code === '42000') {
+          throw new BadRequestException('Database access error', {
+            description: 'Specified database does not exist or cannot be accessed',
+          });
+        }
+  
+        if (initError.code === '08001' || initError.code === '08006') {
+          throw new BadRequestException('Connection failed', {
+            description: 'Unable to establish a connection to the database server',
+          });
+        }
+  
+        // Generic connection error
+        throw new BadRequestException('Database connection error', {
+          description: `Failed to initialize database connection: ${initError.message}`,
+          cause: initError,
         });
-
-        // Simplify foreign key relationships
-        const foreignKeys: ForeignKeyInfo[] = table.foreignKeys.map((fk) => ({
-          columnName: fk.columnNames[0],
-          referencedTableName: fk.referencedTableName,
-          referencedColumnName: fk.referencedColumnNames[0],
-        }));
-
-        // Add table to schema
-        schema[table.name] = {
-          columns,
-          ...(foreignKeys.length > 0 && { foreignKeys }),
-        };
       }
-
-      await queryRunner.release();
-      await tempDataSource.destroy();
-
-      // Add metadata for LLM context
-      const schemaMetadata: SchemaMetadata = {
-        totalTables: Object.keys(schema).length,
-        totalColumns: Object.values(schema).reduce(
-          (acc, table) => acc + table.columns.length,
-          0,
-        ),
-      };
-
-      return {
-        metadata: schemaMetadata,
-        schema,
-      };
+  
+      const queryRunner = tempDataSource.createQueryRunner();
+  
+      try {
+        const tables = await queryRunner.getTables();
+  
+        const schema: Schema = {};
+  
+        const systemSchemas = [
+          'information_schema',
+          'sys',
+          'performance_schema',
+          'mysql',
+          'pg_catalog',
+          'SYS',
+          'SYSTEM',
+          'CTXSYS',
+        ];
+  
+        const systemTablePrefixes = ['pg_', '_pg_', 'sqlite_'];
+  
+        for (const table of tables) {
+          // Exclude system tables and schemas
+          if (
+            systemSchemas.includes(table.schema ?? '') || // Fallback to empty string if undefined
+            systemTablePrefixes.some((prefix) => table.name.startsWith(prefix))
+          ) {
+            continue;
+          }
+  
+          // Simplify column information
+          const columns: ColumnInfo[] = table.columns.map((col) => {
+            const columnInfo: ColumnInfo = {
+              name: col.name,
+              type: col.type.split('(')[0], // Simplify type (e.g., "varchar(255)" → "varchar")
+              isPrimary: col.isPrimary,
+            };
+  
+            // Only include isNullable if it's false
+            if (!col.isNullable) {
+              columnInfo.isNullable = col.isNullable;
+            }
+  
+            // Only include isUnique if it's true
+            if (col.isUnique) {
+              columnInfo.isUnique = col.isUnique;
+            }
+  
+            return columnInfo;
+          });
+  
+          // Simplify foreign key relationships
+          const foreignKeys: ForeignKeyInfo[] = table.foreignKeys.map((fk) => ({
+            columnName: fk.columnNames[0],
+            referencedTableName: fk.referencedTableName,
+            referencedColumnName: fk.referencedColumnNames[0],
+          }));
+  
+          // Add table to schema
+          schema[table.name] = {
+            columns,
+            ...(foreignKeys.length > 0 && { foreignKeys }),
+          };
+        }
+  
+        await queryRunner.release();
+        await tempDataSource.destroy();
+  
+        // Add metadata for LLM context
+        const schemaMetadata: SchemaMetadata = {
+          totalTables: Object.keys(schema).length,
+          totalColumns: Object.values(schema).reduce(
+            (acc, table) => acc + table.columns.length,
+            0,
+          ),
+        };
+  
+        return {
+          metadata: schemaMetadata,
+          schema,
+        };
+      } catch (tablesError) {
+        // Error while fetching tables
+        throw new BadRequestException('Schema extraction failed', {
+          description: `Unable to retrieve database tables: ${tablesError.message}`,
+          cause: tablesError,
+        });
+      } finally {
+        // Ensure resources are released even if an error occurs
+        try {
+          await queryRunner.release();
+          await tempDataSource.destroy();
+        } catch (cleanupError) {
+          this.logger.warn(`Resource cleanup error: ${cleanupError.message}`);
+        }
+      }
     } catch (error) {
-      this.logger.error(`Failed to inspect schema: ${error.message}`);
-      throw error;
+      // Catch-all for any unexpected errors
+      this.logger.error(`Unexpected schema extraction error: ${error.message}`);
+      
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+  
+      throw new BadRequestException('Unexpected database schema error', {
+        description: 'Failed to extract database schema due to an unexpected error',
+        cause: error,
+      });
     }
   }
 
@@ -201,7 +256,31 @@ export class UserdbService {
       this.logger.error(
         `Failed to save user ${userId}'s database to our database: ${error.message}`,
       );
-      throw new InternalServerErrorException('Failed to connect to database');
+      if(error instanceof BadRequestException) {
+        throw error;
+      }
+      if (error.code === '28P01' || error.code === '28000') {
+        throw new BadRequestException('Authentication failed', {
+          description: 'Invalid username or password',
+        });
+      }
+
+      if (error.code === '3D000' || error.code === '42000') {
+        throw new BadRequestException('Database access error', {
+          description: 'Database does not exist or cannot be accessed',
+        });
+      }
+
+      if (error.code === '08001' || error.code === '08006') {
+        throw new BadRequestException('Connection failed', {
+          description: 'Unable to establish a connection to the database server',
+        });
+      }
+
+      throw new BadRequestException('Database connection failed', {
+        cause: error,
+        description: 'Unable to add the database connection',
+      });
     }
   }
 
