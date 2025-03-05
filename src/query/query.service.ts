@@ -698,6 +698,29 @@ export class QueryService {
       throw new InternalServerErrorException('Couldnt generate queries');
     }
   }
+  // async generateMappings() {
+
+  //   const schema = `{"metadata":{"totalTables":8,"totalColumns":50},"schema":{"users":{"columns":[{"name":"email","type":"character varying","isPrimary":false,"isNullable":false,"isUnique":true},{"name":"password","type":"character varying","isPrimary":false,"isNullable":false},{"name":"name","type":"character varying","isPrimary":false,"isNullable":false},{"name":"updatedAt","type":"timestamp without time zone","isPrimary":false,"isNullable":false},{"name":"createdAt","type":"timestamp without time zone","isPrimary":false,"isNullable":false},{"name":"id","type":"integer","isPrimary":true,"isNullable":false}]},"queries":{"columns":[{"name":"userId","type":"integer","isPrimary":false,"isNullable":false},{"name":"createdAt","type":"timestamp without time zone","isPrimary":false,"isNullable":false},{"name":"updatedAt","type":"timestamp without time zone","isPrimary":false,"isNullable":false},{"name":"name","type":"character varying","isPrimary":false,"isNullable":false},{"name":"outputType","type":"character varying","isPrimary":false,"isNullable":false},{"name":"query","type":"character varying","isPrimary":false,"isNullable":false},{"name":"data","type":"character varying","isPrimary":false},{"name":"generatedSqlQuery","type":"character varying","isPrimary":false},{"name":"id","type":"integer","isPrimary":true,"isNullable":false},{"name":"databaseId","type":"integer","isPrimary":false,"isNullable":false}],"foreignKeys":[{"columnName":"userId","referencedTableName":"users","referencedColumnName":"id"},{"columnName":"databaseId","referencedTableName":"databases","referencedColumnName":"id"}]},"dashboards":{"columns":[{"name":"id","type":"integer","isPrimary":true,"isNullable":false},{"name":"updatedAt","type":"timestamp without time zone","isPrimary":false,"isNullable":false},{"name":"databaseId","type":"integer","isPrimary":false,"isNullable":false},{"name":"createdAt","type":"timestamp without time zone","isPrimary":false,"isNullable":false},{"name":"description","type":"character varying","isPrimary":false,"isNullable":false},{"name":"name","type":"character varying","isPrimary":false,"isNullable":false},{"name":"userId","type":"integer","isPrimary":false,"isNullable":false}],"foreignKeys":[{"columnName":"userId","referencedTableName":"users","referencedColumnName":"id"},{"columnName":"databaseId","referencedTableName":"databases","referencedColumnName":"id"}]},"tags":{"columns":[{"name":"id","type":"integer","isPrimary":true,"isNullable":false},{"name":"name","type":"character varying","isPrimary":false,"isNullable":false,"isUnique":true}]},"taggable":{"columns":[{"name":"id","type":"integer","isPrimary":true,"isNullable":false},{"name":"tagId","type":"integer","isPrimary":false,"isNullable":false},{"name":"entityId","type":"integer","isPrimary":false,"isNullable":false},{"name":"entityType","type":"character varying","isPrimary":false,"isNullable":false}],"foreignKeys":[{"columnName":"tagId","referencedTableName":"tags","referencedColumnName":"id"}]},"dashboard_query":{"columns":[{"name":"dashboardId","type":"integer","isPrimary":true,"isNullable":false},{"name":"queryId","type":"integer","isPrimary":true,"isNullable":false}],"foreignKeys":[{"columnName":"queryId","referencedTableName":"queries","referencedColumnName":"id"},{"columnName":"dashboardId","referencedTableName":"dashboards","referencedColumnName":"id"}]},"databases":{"columns":[{"name":"password","type":"character varying","isPrimary":false,"isNullable":false},{"name":"userId","type":"integer","isPrimary":false,"isNullable":false},{"name":"connectionName","type":"character varying","isPrimary":false},{"name":"id","type":"integer","isPrimary":true,"isNullable":false},{"name":"createdAt","type":"timestamp without time zone","isPrimary":false,"isNullable":false},{"name":"host","type":"character varying","isPrimary":false,"isNullable":false},{"name":"description","type":"character varying","isPrimary":false},{"name":"provider","type":"character varying","isPrimary":false,"isNullable":false},{"name":"username","type":"character varying","isPrimary":false,"isNullable":false},{"name":"name","type":"character varying","isPrimary":false,"isNullable":false},{"name":"updatedAt","type":"timestamp without time zone","isPrimary":false,"isNullable":false},{"name":"port","type":"integer","isPrimary":false,"isNullable":false},{"name":"schema","type":"character varying","isPrimary":false}],"foreignKeys":[{"columnName":"userId","referencedTableName":"users","referencedColumnName":"id"}]},"dashboard_query_positions":{"columns":[{"name":"x","type":"integer","isPrimary":false,"isNullable":false},{"name":"y","type":"integer","isPrimary":false,"isNullable":false},{"name":"queryId","type":"integer","isPrimary":true,"isNullable":false},{"name":"dashboardId","type":"integer","isPrimary":true,"isNullable":false},{"name":"z","type":"integer","isPrimary":false,"isNullable":false},{"name":"h","type":"integer","isPrimary":false,"isNullable":false}],"foreignKeys":[{"columnName":"dashboardId","referencedTableName":"dashboards","referencedColumnName":"id"},{"columnName":"queryId","referencedTableName":"queries","referencedColumnName":"id"}]}}}`
+  //   const openai = new OpenAI({
+  //     apiKey: OPENAI_API_KEY,
+  //   });
+  //   const prompt = `
+  //     Schema: ${schema}`;
+
+  //   const response = await openai.chat.completions.create({
+  //     model: OPENAI_MODEL,
+  //     temperature: OPENAI_TEMPERATURE,
+  //     messages: [
+  //       { role: 'system', content: QueryPrompts.generateMappings },
+  //       { role: 'user', content: prompt },
+  //     ],
+  //   });
+  //   const mappings =
+  //     response.choices[0].message.content?.trim() ?? '';
+  //   return mappings;
+  
+
+  // }
 
   async getQueryInsights(
     queryId: number,

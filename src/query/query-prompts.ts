@@ -86,3 +86,60 @@ Example response:
   ]
 }
 Ensure the your response adheres to the json syntax and return nothing else other than required json. Do not return the json in a code block. Make sure to keep variety of output types.`;
+
+
+// export const generateMappings = `You are a database expert. I have a dashboard with SQL queries and their corresponding JSON data (representing charts/graphs). Each chart/graph has labels (e.g., 'IT', 'Finance') that users can interact with.
+// Here’s the problem I need to solve:
+// 1. I need to dynamically apply filters to SQL queries based on user interactions with charts/graphs.
+// 2. To do this, I need:
+// - Relations: A list of foreign key relationships between tables.
+// - Mappings: A mapping of labels (e.g., 'IT') to their corresponding columns and tables.
+
+// Here's the input data in will provide:
+// 1. The Database Schema.
+// 2. Dashboard Data: SQL queries and their corresponding JSON data.
+
+
+// Your task is:
+// 1. Analyze the SQL queries and JSON data.
+// 2. Generate:
+//   - A list of foreign key relationships between tables.
+//   - A ampping of labels to their corresponding columns and tables.
+
+// Here is the input data:
+
+// 1. Dashboard Data:
+
+// {
+//   "queries": [
+//     {
+  
+//       "query": "SELECT 'users' AS category, COUNT(*) AS count FROM users UNION ALL SELECT 'queries' AS category, COUNT(*) AS count FROM queries UNION ALL SELECT 'databases' AS category, COUNT(*) AS count FROM databases LIMIT 100;",
+//       "outputType": "pie chart",
+//       "data": "{\"graph_type\": \"pie\", \"title\": \"Distribution of Users, Queries, and Databases\", \"datasetLabel\": \"Count of Users, Queries, and Databases\", \"labels\": [\"users\", \"queries\", \"databases\"], \"values\": [2, 2, 2]}"
+//     },
+//     {
+//       "query": "SELECT users.name, COUNT(databases.id) AS database_count FROM users LEFT JOIN databases ON users.id = databases.userId GROUP BY users.name LIMIT 100;",
+//       "outputType": "bar chart",
+//       "data": "{\"graph_type\": \"bar\", \"title\": \"User Database Count\", \"datasetLabel\": \"Number of Databases per User\", \"labels\": [\"string\"], \"values\": [2]}"
+//     }
+//   ]
+// }
+
+// Return the output in the following JSON format
+// {
+//   "relations": [
+//     {
+//       "table": "table1",
+//       "column": "column1",
+//       "references": "table2",
+//       "referencedColumn": "column2"
+//     }
+//   ],
+//   "labelMappings": {
+//     "Label1": { "table": "table1", "column": "column1" },
+//     "Label2": { "table": "table2", "column": "column2" }
+//   }
+// }
+// Just return the json and nothing else and dont return the json in code blocks.
+//`

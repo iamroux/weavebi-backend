@@ -252,6 +252,15 @@ export class QueryController {
     return await this.queryService.suggestQueries(databaseId, userId);
   }
 
+  // @Get('mappings')
+  // @ApiOperation({ summary: 'Generate mappings' })
+  // @ApiProperty({ type: Number })
+  // @ApiResponse({ type: [QueryEntity] })
+  // async generateMappings(
+  // ) {
+  //   return await this.queryService.generateMappings();
+  // }
+
   @Get('insights/:queryId')
   @ApiOperation({ summary: 'Get insights for a query.' })
   @ApiProperty({ type: Number })

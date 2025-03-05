@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -66,6 +67,7 @@ export class DashboardService {
 
       return { message: 'Dashboard created successfully' };
     } catch (error) {
+      if(error.code === '23503'){throw new BadRequestException('Invalid database ID or access denied')}
       this.logger.error(`Error creating dashboard: ${error.message}`);
       throw new InternalServerErrorException('Failed to create dashboard');
     }
@@ -200,6 +202,7 @@ export class DashboardService {
       await this.dashboardRepo.save(updatedDashboard);
       return { message: 'Dashboard updated successfully', updatedDashboard };
     } catch (error) {
+      if(error instanceof BadRequestException){throw error}
       this.logger.error(`Failed to update dashboard ${id}: ${error.message}`);
       throw new InternalServerErrorException("Couldn't update dashboard");
     }
@@ -260,13 +263,16 @@ export class DashboardService {
       const result = await this.dashboardRepo.delete(id);
 
       if (result.affected === 0) {
-        return 'Dashboard not found';
+        throw new BadRequestException('Dashboard not found')
       }
 
       return 'Dashboard deleted successfully';
     } catch (error) {
       this.logger.error(`Failed to delete dashboard ${id}: ${error.message}`);
 
+      if(error instanceof BadRequestException){
+        throw error;
+      }
       throw new InternalServerErrorException("Couldn't delete dashboard");
     }
   }
@@ -279,7 +285,7 @@ export class DashboardService {
       });
   
       if (!dashboard) {
-        return { message: 'dashboard not found' };
+       throw new BadRequestException('Dashboard not found')
       }
   
       // Map positions to their corresponding queries
@@ -312,6 +318,10 @@ export class DashboardService {
         queries: queriesWithPositions,
       };
     } catch (error) {
+
+      if (error instanceof BadRequestException){
+        throw error;
+      }
       this.logger.error(`Failed to fetch dashboard ${id}: ${error.message}`);
       throw new InternalServerErrorException("Couldn't fetch dashboard");
     }
