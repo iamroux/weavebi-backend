@@ -325,9 +325,6 @@ export class UserdbService {
   }
 
   async test(userId: number, createUserdbDto: CreateUserdbDto) {
-    // create connection to run a simple select 1 query
-    // if connection is ok return message "connection is ok"
-
     try {
       const tempDataSource = new DataSource({
         type: createUserdbDto.provider as
@@ -342,17 +339,68 @@ export class UserdbService {
         password: createUserdbDto.password,
         database: createUserdbDto.name,
       });
-
-      await tempDataSource.initialize();
+  
+      try {
+        await tempDataSource.initialize();
+      } catch (initError) {
+        // Handle specific connection initialization errors
+        if (initError.code === '28P01' || initError.code === '28000') {
+          throw new BadRequestException('Authentication failed', {
+            description: 'Invalid username or password',
+          });
+        }
+  
+        if (initError.code === '3D000' || initError.code === '42000') {
+          throw new BadRequestException('Database access error', {
+            description: 'Database does not exist or cannot be accessed',
+          });
+        }
+  
+        if (initError.code === '08001' || initError.code === '08006') {
+          throw new BadRequestException('Connection failed', {
+            description: 'Unable to establish a connection to the database server',
+          });
+        }
+  
+        throw new BadRequestException('Connection initialization failed', {
+          description: `Failed to initialize database connection: ${initError.message}`,
+          cause: initError,
+        });
+      }
+  
       const queryRunner = tempDataSource.createQueryRunner();
-      await queryRunner.query('SELECT 1');
-      await queryRunner.release();
-      await tempDataSource.destroy();
-
-      return 'Connection is ok';
+  
+      try {
+        await queryRunner.query('SELECT 1');
+      } catch (queryError) {
+        throw new BadRequestException('Query execution failed', {
+          description: 'Unable to run test query on the database',
+          cause: queryError,
+        });
+      } finally {
+        try {
+          await queryRunner.release();
+          await tempDataSource.destroy();
+        } catch (cleanupError) {
+          this.logger.warn(`Connection test cleanup error: ${cleanupError.message}`);
+        }
+      }
+  
+      return { 
+        message: 'Connection successful', 
+        status: true 
+      };
     } catch (error) {
       this.logger.error(`Failed to test connection: ${error.message}`);
-      throw new InternalServerErrorException('Failed to test connection');
+  
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+  
+      throw new BadRequestException('Connection test failed', {
+        description: 'Unable to verify database connection',
+        cause: error,
+      });
     }
   }
 
@@ -380,7 +428,7 @@ export class UserdbService {
       });
 
       if (!existingDatabase) {
-        throw new Error('Database not found');
+        throw new BadRequestException('Database not found');
       }
 
       // Get the schema of the database
@@ -432,7 +480,7 @@ export class UserdbService {
       });
 
       if (!database) {
-        throw new Error('Database not found');
+        throw new BadRequestException('Database not found');
       }
 
       return database;
@@ -440,6 +488,7 @@ export class UserdbService {
       this.logger.error(
         `Failed to retrieve user ${userId}'s database: ${error.message}`,
       );
+      if (error instanceof BadRequestException){throw error;}
       throw new InternalServerErrorException('Failed to retrieve database');
     }
   }
@@ -454,7 +503,7 @@ export class UserdbService {
       });
 
       if (!database) {
-        throw new Error('Database not found');
+        throw new BadRequestException('Database not found');
       }
 
       await this.userDbRepo.remove(database);
@@ -463,6 +512,7 @@ export class UserdbService {
       this.logger.error(
         `Failed to delete user ${userId}'s database: ${error.message}`,
       );
+      if(error instanceof BadRequestException){throw error}
       throw new InternalServerErrorException('Failed to delete database');
     }
   }
