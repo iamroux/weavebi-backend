@@ -16,6 +16,7 @@ import OpenAI from 'openai';
 import * as QueryPrompts from './query-prompts';
 import { DashboardEntity } from '../dashboard/entities/dashboard.entity';
 import { EncryptionService } from './encryption.service';
+import { ExecuteQueryDto } from './dto/execute-query.dto';
 
 // Global Constants
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -383,6 +384,34 @@ export class QueryService {
         : new InternalServerErrorException(
             `Failed to execute query: ${error.message}`,
           );
+    }
+  }
+
+  async execute(executeQueryDto: ExecuteQueryDto, userId: number){
+    const database = await this.queryRepo.query(
+      `SELECT * FROM databases WHERE "id"=$1 AND "userId"=$2`,
+      [executeQueryDto.databaseId, userId],
+    );
+
+    if (!database.length) {
+      throw new NotFoundException('Database not found');
+    }
+
+    const password = await this.encryptionService.decrypt(database[0].password);
+    const { host, username,  name, port,  provider } = database[0];
+
+    const dataFromDatabase = await this.executeSqlQuery(
+      executeQueryDto.sqlQuery,
+      host,
+      username,
+      password,
+      name,
+      port,
+      provider,
+    )
+
+    return {
+      "dataFromDatabase": dataFromDatabase
     }
   }
 

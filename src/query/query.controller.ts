@@ -25,6 +25,7 @@ import {
 import { MessageDto } from 'src/core/dtos/generic-response.dto';
 import { QueryEntity } from './entities/query.entity';
 import { LinkQueryToDashboardDto } from './dto/link-query-to-dashboard.dto';
+import { ExecuteQueryDto } from './dto/execute-query.dto';
 
 @Controller('query')
 @UseGuards(AuthGuard)
@@ -85,6 +86,13 @@ export class QueryController {
     const userId = req.user.id;
     return await this.queryService.directRunQuery(userId, createQueryDto, save);
   }
+
+@Post('execute')
+@ApiOperation({summary: 'simply execute an sql query in the provided database'})
+async execute(@Body() executeQueryDto: ExecuteQueryDto, @Request() req){
+  const userId = req.user.id;
+  return await this.queryService.execute(executeQueryDto, userId)
+}
 
   @Post('link-to-dashboard')
   @ApiOperation({ summary: 'Link a query to a dashboard.' })
