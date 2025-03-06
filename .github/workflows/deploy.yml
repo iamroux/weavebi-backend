@@ -23,6 +23,6 @@ jobs:
           ssh -o StrictHostKeyChecking=no ubuntu@45.198.13.250 << 'EOF'
           cd weavebi-backend
           git pull origin main
-          docker compose down
-          docker compose up --build -d
+          docker-compose down
+          docker-compose up --build -d
           EOF
