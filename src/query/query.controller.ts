@@ -299,4 +299,12 @@ async execute(@Body() executeQueryDto: ExecuteQueryDto, @Request() req){
       customInstructions,
     );
   }
+
+  @Get('sample-dashboard/:databaseId')
+  @ApiOperation({summary: 'Generate a sample dashboard for new user'})
+  async generateDashboard(@Param('databaseId') databaseId:number, @Request() req){
+    const userId = req.user.id;
+    return await this.queryService.generateDashboard(databaseId, userId);
+
+  }
 }

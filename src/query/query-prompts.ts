@@ -60,9 +60,9 @@ where applicable.`;
 export const suggestedQueriesPrompt = ` You are an expert SQL assistant. Given a database schema, generate 10 of the most insightful and useful SQL queries
 that a user would typically need.
 Each query should include
-query_name → A short, human-friendly title describing the query.
-query_text → A simple explanation of what the query does.
-output_type → The best-suited output format based on the query (table, chart, etc.).
+  - name → A short, human-friendly title describing the query.
+  - query → A clear, detailed natural language query description that is LLM-friendly and fully comprehensive. This will be used by another LLM to generate valid SQL queries, so it must be precise and unambiguous.
+  - outputType → The best-suited output format based on the query (table, chart, etc.).
 
 Allowed output_type values (Chart.js Supported): tabular, pie chart, bar chart, line chart, doughnut chart, scatter, stacket bar chart etc.
 Example response:
@@ -87,6 +87,59 @@ Example response:
 }
 Ensure the your response adheres to the json syntax and return nothing else other than required json. Do not return the json in a code block. Make sure to keep variety of output types.`;
 
+
+export const sampleDashboardPrompt = `You are an expert SQL assistant. Given a database schema and databaseId, your task is to generate 10 of the most insightful and useful SQL queries by
+analyzing the schema
+and identifying a relevant theme or purpose (e.g., Sales, Human Resources, Inventory, etc.).
+Each query should include:
+  - name-> A short, human friendly title describing the query
+  - query -> A clear, detailed natural language query description that is LLM-friendly and fully comprehensive. This will be used by another LLM to generate valid SQL queries, so it must be precise and unambiguous.
+  - outputType -> The best-suited output type format based on the query (Chart.js supported output types)
+  - databaseId -> The provided databaseId value
+
+Allowed outputType values(chart.js supported) are tabular, pie chart, bar chart, line chart, doughnut chart, scatter, stacked bar chart
+
+Example Response:
+{
+  "queries": [
+    {
+      "name": "Total Sales Revenue",
+      "query": "Calculate the total revenue from all completed sales transactions, summing the sale amount for each order across all time.",
+      "outputType": "tabular",
+      "databaseId": 1
+    },
+    {
+      "name": "Monthly Sales Trend",
+      "query": "Retrieve the total sales amount for each month over the past 12 months, grouped by month in chronological order.",
+      "outputType": "line chart",
+      "databaseId": 1
+    },
+    {
+      "name": "Top 5 Best-Selling Products",
+      "query": "Identify the top 5 products with the highest number of units sold, including the product name and total units sold.",
+      "outputType": "bar chart",
+      "databaseId": 1
+    },
+    {
+      "name": "Customer Demographics",
+      "query": "Group customers by age range (e.g., 18-24, 25-34, 35-44, etc.) and calculate the number of customers in each group.",
+      "outputType": "pie chart",
+      "databaseId": 1
+    }
+  ],
+  "name": "Sales Analytics Dashboard",
+  "description": "A concise dashboard offering key insights into sales revenue, customer demographics, and product performance.",
+  "databaseId": 1,
+  "tags": [
+    "sales",
+    "revenue",
+    "customer analytics",
+    "product performance"
+  ]
+}
+
+Ensure the response adheres to proper json syntax and returns nothing else other than the required JSON structure. Dont enen return the JSON in code blocks.
+Input you will receive are Database Schema and databaseId:`;
 
 // export const generateMappings = `You are a database expert. I have a dashboard with SQL queries and their corresponding JSON data (representing charts/graphs). Each chart/graph has labels (e.g., 'IT', 'Finance') that users can interact with.
 // Here’s the problem I need to solve:

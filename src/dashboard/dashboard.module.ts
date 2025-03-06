@@ -7,7 +7,7 @@ import { DashboardEntity } from './entities/dashboard.entity';
 
 @Module({
   imports: [TypeOrmModule.forFeature([DashboardEntity]), AuthModule],
-
+  exports: [DashboardService],
   controllers: [DashboardController],
   providers: [DashboardService],
 })

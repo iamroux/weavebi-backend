@@ -17,6 +17,7 @@ import * as QueryPrompts from './query-prompts';
 import { DashboardEntity } from '../dashboard/entities/dashboard.entity';
 import { EncryptionService } from './encryption.service';
 import { ExecuteQueryDto } from './dto/execute-query.dto';
+import { DashboardService } from 'src/dashboard/dashboard.service';
 
 // Global Constants
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -32,7 +33,8 @@ export class QueryService {
   constructor(
     @InjectRepository(QueryEntity)
     private readonly queryRepo: Repository<QueryEntity>,
-    private readonly encryptionService: EncryptionService
+    private readonly encryptionService: EncryptionService,
+    private readonly dashboardService: DashboardService
   ) {}
 
   // Helper method to generate SQL query using OpenAI
@@ -804,4 +806,66 @@ export class QueryService {
       throw new InternalServerErrorException('Failed to get insights');
     }
   }
+
+
+  async generateDashboard(databaseId:number, userId: number){
+
+    try {
+
+      // step 1: generate a bunch of queries
+      const schemaQuery = await this.queryRepo.query(
+        `SELECT * FROM databases WHERE "id" = $1;`, [databaseId]
+      )
+
+      const schema = schemaQuery[0].schema;
+      const openai = new OpenAI({
+        apiKey: OPENAI_API_KEY,
+      });
+      const prompt = `
+        Database Schema: ${schema}
+        databaseId: ${databaseId}
+        `;
+
+      const response = await openai.chat.completions.create({
+        model: OPENAI_MODEL,
+        temperature: OPENAI_TEMPERATURE,
+        messages: [
+          { role: 'system', content: QueryPrompts.sampleDashboardPrompt },
+          { role: 'user', content: prompt },
+        ],
+      });
+      const output =
+        response.choices[0].message.content?.trim() ?? '';
+        const parsedOutput = JSON.parse(output);
+
+      // step 2: save the queries:
+      const queries = JSON.parse(output).queries;
+
+      for (const query of queries) {
+        await this.create(userId, {
+          name: query.name,
+          query: query.query,
+          outputType: query.outputType,
+          databaseId: query.databaseId,
+        });
+      }
+
+      // step 3: create a dashboard
+      await this.dashboardService.create(userId, {
+        name: parsedOutput.name,
+        description: parsedOutput.description,
+        databaseId: parsedOutput.databaseId,
+        tags: parsedOutput.tags,
+      });
+
+      // step 4: link queries to dashboard
+
+      // step 5: parallel execute all queries
+
+    } catch (error) {
+      this.logger.error(`Failed to generate sample dashboard: ${error.message}`);
+      throw new InternalServerErrorException('Couldnt generate sample dashboard');
+    }
+  }
+
 }

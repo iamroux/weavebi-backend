@@ -6,9 +6,10 @@ import { AuthModule } from 'src/auth/auth.module';
 import { QueryEntity } from './entities/query.entity';
 import { EncryptionService } from './encryption.service';
 import { UserdbEntity } from 'src/userdb/entities/userdb.entity';
+import { DashboardModule } from 'src/dashboard/dashboard.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([QueryEntity]), AuthModule],
+  imports: [TypeOrmModule.forFeature([QueryEntity]), AuthModule, DashboardModule],
 
   controllers: [QueryController],
   providers: [QueryService, EncryptionService],
