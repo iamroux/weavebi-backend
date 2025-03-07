@@ -225,7 +225,7 @@ export class UserdbService {
       });
 
       if (existingDatabase) {
-        return 'Database already exists';
+        throw new BadRequestException('Database already exists');
       }
 
       // Get the schema of the database
@@ -242,6 +242,10 @@ export class UserdbService {
         createUserdbDto.password,
         createUserdbDto.name,
       );
+
+      if(!schema || typeof schema !=='object'){
+        throw new BadRequestException('Database schema not found');
+      }
 
       // Save to database using only existing fields in the entity
       const newDatabase = this.userDbRepo.create({
