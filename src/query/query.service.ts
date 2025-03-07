@@ -635,6 +635,24 @@ export class QueryService {
     }
   }
 
+  async getExecutedQueryCount(
+    userId: number,
+  ): Promise<{ count: number }> {
+    try {
+      const count = await this.queryRepo.query(
+        'SELECT COUNT(*)::int AS count FROM queries WHERE data IS NOT NULL AND "userId" = $1',
+        [userId],
+      );
+
+      return { count: count[0]?.count ?? 0 };
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch query count: ${error.message}`,
+      );
+      throw new InternalServerErrorException("Couldn't fetch query count");
+    }
+  }
+
   async getDashboardQueries(
     dashboardId: number,
     userId: number,

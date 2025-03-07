@@ -198,6 +198,15 @@ async execute(@Body() executeQueryDto: ExecuteQueryDto, @Request() req){
     return await this.queryService.getQueryCountForDashboard(dashboardId);
   }
 
+  @Get('count-executed')
+  @ApiOperation({ summary: 'Get count of queries that have been executed by user.' })
+  @ApiProperty({ type: Number })
+  @ApiResponse({ type: Number })
+  async getExecutedQueryCount(@Request() req) {
+    const userId = req.user.id;
+    return await this.queryService.getExecutedQueryCount(userId);
+  }
+
   @Get('dashboard-queries/:dashboardId')
   @ApiOperation({ summary: 'Get all queries belonging to a dashboard.' })
   @ApiProperty({ type: Number })
