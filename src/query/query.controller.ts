@@ -36,11 +36,10 @@ export class QueryController {
   @Post()
   @ApiOperation({ summary: 'Save a query.' })
   @ApiProperty({ type: CreateQueryDto })
-  @ApiResponse({ type: MessageDto })
+  @ApiResponse({ type: CreateQueryDto })
   async create(@Request() req, @Body() createQueryDto: CreateQueryDto) {
     const userId = req.user.id;
-    const message = await this.queryService.create(userId, createQueryDto);
-    return { message };
+    return await this.queryService.create(userId, createQueryDto);
   }
 
   @Patch(':id')
@@ -302,9 +301,10 @@ async execute(@Body() executeQueryDto: ExecuteQueryDto, @Request() req){
 
   @Get('sample-dashboard/:databaseId')
   @ApiOperation({summary: 'Generate a sample dashboard for new user'})
+  @ApiResponse({type: MessageDto})
   async generateDashboard(@Param('databaseId') databaseId:number, @Request() req){
     const userId = req.user.id;
-    return await this.queryService.generateDashboard(databaseId, userId);
-
+    const message = await this.queryService.generateDashboard(databaseId, userId);
+    return {message}
   }
 }

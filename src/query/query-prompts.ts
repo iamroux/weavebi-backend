@@ -14,7 +14,7 @@ The SQL query should fetch data necessary for creating the specified chart type:
 Ensure the query returns a column for labels (categories/groups).
 Ensure the query returns a column for values (numerical data).
 Return only the SQL query. Do not include explanations or additional text. Dont return the SQL query in a code block.
-Make sure to add LIMIT 100; to SELECT queries  if no limit is specified by user to avoid large data sets.
+Make sure to add LIMIT 100; to SELECT queries if no limit is specified by user to avoid large data sets.
 Handle naming conventions appropriately. For example, if the database uses camel case, ensure to use double quotes (e.g., "columnName") as required
 by PostgreSQL.`;
 
@@ -105,31 +105,26 @@ Example Response:
     {
       "name": "Total Sales Revenue",
       "query": "Calculate the total revenue from all completed sales transactions, summing the sale amount for each order across all time.",
-      "outputType": "tabular",
-      "databaseId": 1
+      "outputType": "tabular"
     },
     {
       "name": "Monthly Sales Trend",
       "query": "Retrieve the total sales amount for each month over the past 12 months, grouped by month in chronological order.",
-      "outputType": "line chart",
-      "databaseId": 1
+      "outputType": "line chart"
     },
     {
       "name": "Top 5 Best-Selling Products",
       "query": "Identify the top 5 products with the highest number of units sold, including the product name and total units sold.",
-      "outputType": "bar chart",
-      "databaseId": 1
+      "outputType": "bar chart"
     },
     {
       "name": "Customer Demographics",
       "query": "Group customers by age range (e.g., 18-24, 25-34, 35-44, etc.) and calculate the number of customers in each group.",
-      "outputType": "pie chart",
-      "databaseId": 1
+      "outputType": "pie chart"
     }
   ],
   "name": "Sales Analytics Dashboard",
   "description": "A concise dashboard offering key insights into sales revenue, customer demographics, and product performance.",
-  "databaseId": 1,
   "tags": [
     "sales",
     "revenue",
@@ -138,8 +133,7 @@ Example Response:
   ]
 }
 
-Ensure the response adheres to proper json syntax and returns nothing else other than the required JSON structure. Dont enen return the JSON in code blocks.
-Input you will receive are Database Schema and databaseId:`;
+Ensure the response adheres to proper json syntax and returns nothing else other than the required JSON structure. Dont enen return the JSON in code blocks.`;
 
 // export const generateMappings = `You are a database expert. I have a dashboard with SQL queries and their corresponding JSON data (representing charts/graphs). Each chart/graph has labels (e.g., 'IT', 'Finance') that users can interact with.
 // Here’s the problem I need to solve:

@@ -21,8 +21,8 @@ import { DashboardService } from 'src/dashboard/dashboard.service';
 
 // Global Constants
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const OPENAI_MODEL = 'gpt-4o-mini';
-const OPENAI_TEMPERATURE = 0;
+const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+const OPENAI_TEMPERATURE = parseFloat(process.env.OPENAI_TEMPERATURE || '0.0');
 
 // now i am become death
 
@@ -440,13 +440,13 @@ export class QueryService {
       });
       await this.queryRepo.save(query);
 
-      return 'Query added successfully';
+      return  query;
     } catch (error) {
       this.logger.error(
         `Failed to save query for user ${userId} to our database: ${error.message}`,
       );
-      throw new InternalServerErrorException(
-        'Failed to save query to database',
+      throw new BadRequestException(
+        `Failed to save query to database: Reason: ${error.message}`,
       );
     }
   }
@@ -822,9 +822,7 @@ export class QueryService {
         apiKey: OPENAI_API_KEY,
       });
       const prompt = `
-        Database Schema: ${schema}
-        databaseId: ${databaseId}
-        `;
+        Database Schema: ${schema}`;
 
       const response = await openai.chat.completions.create({
         model: OPENAI_MODEL,
@@ -840,32 +838,41 @@ export class QueryService {
 
       // step 2: save the queries:
       const queries = JSON.parse(output).queries;
-
+      const ids : number[]= [];
       for (const query of queries) {
-        await this.create(userId, {
+        const data = await this.create(userId, {
           name: query.name,
           query: query.query,
           outputType: query.outputType,
-          databaseId: query.databaseId,
+          databaseId: databaseId, 
         });
+        ids.push(data.id);
       }
 
       // step 3: create a dashboard
       await this.dashboardService.create(userId, {
         name: parsedOutput.name,
         description: parsedOutput.description,
-        databaseId: parsedOutput.databaseId,
+        databaseId: databaseId,
         tags: parsedOutput.tags,
       });
 
       // step 4: link queries to dashboard
+      const dashboard = await this.queryRepo.query(
+        `SELECT * FROM dashboards WHERE "name" = $1;`, [parsedOutput.name]
+      )
+      const dashboardId = dashboard[0].id;
+      for (const id of ids) {
+        await this.linkQueryToDashboard(userId, id, dashboardId);
+      }
 
       // step 5: parallel execute all queries
+      await Promise.all(ids.map((id) => this.runQuery(id, userId)));
+      return "Sample dashboard generated successfully";
 
     } catch (error) {
       this.logger.error(`Failed to generate sample dashboard: ${error.message}`);
       throw new InternalServerErrorException('Couldnt generate sample dashboard');
     }
   }
-
 }
