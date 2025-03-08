@@ -775,6 +775,15 @@ export class QueryService {
         response.choices[0].message.content?.trim() ?? '';
       return generatedQueries;
     } catch (error) {
+      if (
+        error.constructor.name === 'APIConnectionError' || 
+        error.message.includes('Connection error') ||
+        (error.cause?.code === 'EAI_AGAIN') ||
+        (error.cause?.errno === 'EAI_AGAIN')
+      ) {
+        throw new HttpException('Network issue connecting to AI service.', HttpStatus.SERVICE_UNAVAILABLE)
+      }
+
       this.logger.error(`Failed to generate queries: ${error.message}`);
       throw new InternalServerErrorException('Couldnt generate queries');
     }
@@ -849,6 +858,14 @@ export class QueryService {
       const insights = response.choices[0].message.content?.trim() ?? '';
       return { insights: insights };
     } catch (error) {
+      if (
+        error.constructor.name === 'APIConnectionError' || 
+        error.message.includes('Connection error') ||
+        (error.cause?.code === 'EAI_AGAIN') ||
+        (error.cause?.errno === 'EAI_AGAIN')
+      ) {
+        throw new HttpException('Network issue connecting to AI service.', HttpStatus.SERVICE_UNAVAILABLE)
+      }
       if(error instanceof BadRequestException){throw error}
       this.logger.error(`Failed to get insights: ${error.message}`);
       throw new InternalServerErrorException('Failed to get insights');
@@ -919,6 +936,14 @@ export class QueryService {
       return "Sample dashboard generated successfully";
 
     } catch (error) {
+      if (
+        error.constructor.name === 'APIConnectionError' || 
+        error.message.includes('Connection error') ||
+        (error.cause?.code === 'EAI_AGAIN') ||
+        (error.cause?.errno === 'EAI_AGAIN')
+      ) {
+        throw new HttpException('Network issue connecting to AI service.', HttpStatus.SERVICE_UNAVAILABLE)
+      }
       this.logger.error(`Failed to generate sample dashboard: ${error.message}`);
       throw new InternalServerErrorException('Couldnt generate sample dashboard');
     }
