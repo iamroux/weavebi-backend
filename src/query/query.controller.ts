@@ -10,6 +10,8 @@ import {
   Request,
   Query,
   ParseBoolPipe,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { QueryService } from './query.service';
 import { CreateQueryDto } from './dto/create-query.dto';
@@ -69,7 +71,7 @@ export class QueryController {
   @ApiOperation({
     summary: 'Run and/or save a query by providing query info.',
   })
-  @ApiResponse({ type: QueryEntity })
+  // @ApiResponse({ type: QueryEntity })
   @ApiBody({ type: CreateQueryDto })
   @ApiQuery({
     name: 'save',
@@ -115,6 +117,7 @@ async execute(@Body() executeQueryDto: ExecuteQueryDto, @Request() req){
   @ApiOperation({ summary: 'Unlink a query from a dashboard.' })
   @ApiProperty({ type: LinkQueryToDashboardDto })
   @ApiResponse({ type: MessageDto })
+  @HttpCode(HttpStatus.OK)
   async unlinkQueryFromDashboard(
     @Body() linkQueryToDashboardDto: LinkQueryToDashboardDto,
     @Request() req,

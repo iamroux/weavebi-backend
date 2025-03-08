@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get } from '@nestjs/common';
+import { Controller, Post, Body, Get, HttpCode, HttpStatus } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
 import { ApiOperation, ApiProperty, ApiResponse } from '@nestjs/swagger';
@@ -34,6 +34,7 @@ export class AuthController {
 
   @Post('forgot-password')
   @ApiOperation({ summary: 'Forgot password' })
+  @HttpCode(HttpStatus.OK)
   @ApiResponse({ type: MessageDto })
   async forgotPassword(
     @Body() forgotPasswordDto: ForgotPasswordDto,

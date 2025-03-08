@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -225,7 +226,7 @@ export class UserdbService {
       });
 
       if (existingDatabase) {
-        throw new BadRequestException('Database already exists');
+        throw new ConflictException('Database already exists');
       }
 
       // Get the schema of the database
@@ -261,6 +262,9 @@ export class UserdbService {
         `Failed to save user ${userId}'s database to our database: ${error.message}`,
       );
       if(error instanceof BadRequestException) {
+        throw error;
+      }
+      if(error instanceof ConflictException){
         throw error;
       }
       if (error.code === '28P01' || error.code === '28000') {
@@ -454,6 +458,7 @@ export class UserdbService {
       await this.userDbRepo.save(updatedDatabase);
       return 'Database updated successfully';
     } catch (error) {
+      if(error instanceof BadRequestException){throw error}
       this.logger.error(
         `Failed to update user ${userId}'s database: ${error.message}`,
       );

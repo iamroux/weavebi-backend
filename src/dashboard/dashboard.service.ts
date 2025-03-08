@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -35,7 +36,7 @@ export class DashboardService {
       });
 
       if (existingDashboard) {
-        return { message: 'Dashboard with this name already exists' };
+        throw new ConflictException('Dashboard with same name already exists.');
       }
 
       // Create the dashboard
@@ -68,6 +69,7 @@ export class DashboardService {
       return { message: 'Dashboard created successfully' };
     } catch (error) {
       if(error.code === '23503'){throw new BadRequestException('Invalid database ID or access denied')}
+      if(error instanceof ConflictException){throw error}
       this.logger.error(`Error creating dashboard: ${error.message}`);
       throw new InternalServerErrorException('Failed to create dashboard');
     }
@@ -203,6 +205,7 @@ export class DashboardService {
       return { message: 'Dashboard updated successfully', updatedDashboard };
     } catch (error) {
       if(error instanceof BadRequestException){throw error}
+      if(error instanceof NotFoundException){throw error}
       this.logger.error(`Failed to update dashboard ${id}: ${error.message}`);
       throw new InternalServerErrorException("Couldn't update dashboard");
     }

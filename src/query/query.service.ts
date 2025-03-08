@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   HttpException,
+  HttpStatus,
   Injectable,
   InternalServerErrorException,
   Logger,
@@ -11,7 +12,7 @@ import {
 import { CreateQueryDto } from './dto/create-query.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryEntity } from './entities/query.entity';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, Not, Repository } from 'typeorm';
 import OpenAI from 'openai';
 import * as QueryPrompts from './query-prompts';
 import { DashboardEntity } from '../dashboard/entities/dashboard.entity';
@@ -93,6 +94,14 @@ export class QueryService {
 
       return cleanResponse;
     } catch (error) {
+      if (
+        error.constructor.name === 'APIConnectionError' || 
+        error.message.includes('Connection error') ||
+        (error.cause?.code === 'EAI_AGAIN') ||
+        (error.cause?.errno === 'EAI_AGAIN')
+      ) {
+        throw new HttpException('Network issue connecting to AI service.', HttpStatus.SERVICE_UNAVAILABLE)
+      }
       this.logger.error('Error generating SQL query:', error);
       throw new InternalServerErrorException('Failed to generate SQL query.');
     }
@@ -260,6 +269,8 @@ export class QueryService {
         updatedAt: queryEntity.updatedAt,
       };
     } catch (error) {
+      if(error instanceof  NotFoundException){throw error}
+      if(error instanceof HttpException){throw error}
       this.logger.error(`Failed to run query: ${error.message}`);
       throw new InternalServerErrorException(
         `Failed to run query: ${error.message}`,
@@ -369,7 +380,7 @@ export class QueryService {
         this.logger.log('query saved');
       }
 
-      return {
+      const result =  {
         id: queryEntity.id,
         name: queryEntity.name,
         query: queryEntity.query,
@@ -379,17 +390,23 @@ export class QueryService {
         createdAt: queryEntity.createdAt,
         updatedAt: queryEntity.updatedAt,
       };
+      return {
+        statusCode: save ? HttpStatus.CREATED: HttpStatus.OK,
+        message: save ? 'Query executed and saved successfully' : 'Query executed successfully',
+        data: result
+      }
     } catch (error) {
+      if(error instanceof BadRequestException){throw error}
+      if(error instanceof HttpException){throw error}
       this.logger.error(`Failed to run direct query: ${error.message}`);
-      throw error instanceof HttpException
-        ? error
-        : new InternalServerErrorException(
+      throw  new InternalServerErrorException(
             `Failed to execute query: ${error.message}`,
           );
     }
   }
 
   async execute(executeQueryDto: ExecuteQueryDto, userId: number){
+    try {
     const database = await this.queryRepo.query(
       `SELECT * FROM databases WHERE "id"=$1 AND "userId"=$2`,
       [executeQueryDto.databaseId, userId],
@@ -415,6 +432,11 @@ export class QueryService {
     return {
       "dataFromDatabase": dataFromDatabase
     }
+  }
+  catch(error) {
+    if(error instanceof BadRequestException){throw error}
+    throw new InternalServerErrorException('Failed to execute query.')
+  }
   }
 
   async create(userId: number, createQueryDto: CreateQueryDto) {
@@ -442,6 +464,7 @@ export class QueryService {
 
       return  query;
     } catch (error) {
+      if (error instanceof ConflictException){throw error}
       this.logger.error(
         `Failed to save query for user ${userId} to our database: ${error.message}`,
       );
@@ -462,7 +485,7 @@ export class QueryService {
       });
 
       if (!query || query.database.user.id !== userId) {
-        throw new Error('Query not found or unauthorized');
+        throw new BadRequestException('Query not found or unauthorized');
       }
 
       query.name = createQueryDto.name;
@@ -473,6 +496,7 @@ export class QueryService {
 
       return 'Query updated successfully';
     } catch (error) {
+      if(error instanceof BadRequestException){throw error}
       this.logger.error(
         `Failed to update query for user ${userId}: ${error.message}`,
       );
@@ -495,7 +519,7 @@ export class QueryService {
       });
 
       if (!query || !dashboard) {
-        throw new Error('Query or Dashboard not found');
+        throw new NotFoundException('Query or Dashboard not found');
       }
 
       query.dashboards.push(dashboard);
@@ -503,6 +527,7 @@ export class QueryService {
 
       return 'Query linked to dashboard successfully';
     } catch (error) {
+      if(error instanceof NotFoundException){throw error}
       this.logger.error(`Failed to link query to dashboard: ${error.message}`);
       throw new InternalServerErrorException(
         'Failed to link query to dashboard',
@@ -525,7 +550,7 @@ export class QueryService {
       });
 
       if (!query || !dashboard) {
-        throw new Error('Query or Dashboard not found');
+        throw new NotFoundException('Query or Dashboard not found');
       }
 
       query.dashboards = query.dashboards.filter((d) => d.id !== dashboardId);
@@ -533,6 +558,7 @@ export class QueryService {
 
       return 'Query unlinked from dashboard successfully';
     } catch (error) {
+      if(error instanceof NotFoundException){throw error}
       this.logger.error(
         `Failed to unlink query from dashboard: ${error.message}`,
       );
@@ -565,6 +591,8 @@ export class QueryService {
 
       return results;
     } catch (error) {
+      if (error instanceof NotFoundException){throw error}
+      this.logger.error(`Couldnt execute queries. Error: ${error.message}`)
       throw new InternalServerErrorException("Couldn't execute queries");
     }
   }
@@ -711,6 +739,7 @@ export class QueryService {
       await this.queryRepo.delete(id);
       return 'Query and related dashboard entries deleted successfully';
     } catch (error) {
+      if(error instanceof ForbiddenException){throw error}
       this.logger.error(`Failed to delete query ${id}: ${error.message}`);
       throw new InternalServerErrorException('Failed to delete query');
     }
@@ -786,7 +815,7 @@ export class QueryService {
       });
 
       if (!query) {
-        throw new Error('Query not found or unauthorized');
+        throw new BadRequestException('Query not found or unauthorized');
       }
 
       const { query: userQuery, generatedSqlQuery, outputType, data } = query;
@@ -820,6 +849,7 @@ export class QueryService {
       const insights = response.choices[0].message.content?.trim() ?? '';
       return { insights: insights };
     } catch (error) {
+      if(error instanceof BadRequestException){throw error}
       this.logger.error(`Failed to get insights: ${error.message}`);
       throw new InternalServerErrorException('Failed to get insights');
     }

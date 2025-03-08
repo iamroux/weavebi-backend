@@ -9,6 +9,8 @@ import {
   UseGuards,
   Request,
   Query,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { UserdbService } from './userdb.service';
 import { CreateUserdbDto } from './dto/create-userdb.dto';
@@ -45,6 +47,8 @@ export class UserdbController {
   @ApiOperation({ summary: 'Test a database connection' })
   @ApiProperty({ type: CreateUserdbDto })
   @ApiResponse({ type: MessageDto })
+  @HttpCode(HttpStatus.OK)
+  
   async test(@Request() req, @Body() createUserdbDto: CreateUserdbDto) {
     const userId = req.user.id;
     const message = await this.userdbService.test(userId, createUserdbDto);
