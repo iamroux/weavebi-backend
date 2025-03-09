@@ -325,6 +325,7 @@ async execute(@Body() executeQueryDto: ExecuteQueryDto, @Request() req){
   }
 
   @Get('download-json/:queryId')
+  @ApiOperation({summary: 'Download a qury output in json'})
   async downloadQueryDataAsJson(
     @Param('queryId', ParseIntPipe) queryId: number,
     @Res() res: Response,
@@ -340,6 +341,8 @@ async execute(@Body() executeQueryDto: ExecuteQueryDto, @Request() req){
   }
   
   @Get('download-csv/:queryId')
+  @ApiOperation({summary: 'Download a qury output in csv'})
+
   async downloadQueryDataAsCsv(
     @Param('queryId', ParseIntPipe) queryId: number,
     @Res() res: Response,
