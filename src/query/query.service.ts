@@ -948,4 +948,90 @@ export class QueryService {
       throw new InternalServerErrorException('Couldnt generate sample dashboard');
     }
   }
+
+
+  async getQueryDataAsJson(queryId: number, userId: number) {
+    try {
+      const result = await this.queryRepo.query(
+        `SELECT data FROM queries WHERE id = $1 AND "userId" = $2`,
+        [queryId, userId]
+      );
+      
+      if (!result || result.length === 0) {
+        throw new NotFoundException(`Query with id ${queryId} not found or you don't have access to it`);
+      }
+      
+      // Get the data from the result
+      const rawData = result[0].data;
+      
+      // If no data, return empty array
+      if (!rawData) {
+        return [];
+      }
+      
+      // Try to directly return the data if it's already in proper format
+      return rawData;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      
+      this.logger.error(`Error processing query data: ${error.message}`, error.stack);
+      throw new InternalServerErrorException('Failed to process query data');
+    }
+  }
+  
+  async getQueryDataAsCsv(queryId: number, userId: number) {
+    try {
+      const data = await this.getQueryDataAsJson(queryId, userId);
+      
+      // Handle empty data case
+      if (!data || (Array.isArray(data) && data.length === 0)) {
+        return "No data";
+      }
+      
+      let csvContent = '';
+      
+      // If data is an array of objects (most common case)
+      if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'object') {
+        // Get headers from first item
+        const headers = Object.keys(data[0]).join(',');
+        
+        // Generate rows
+        const rows = data.map(item => {
+          return Object.values(item)
+            .map(value => {
+              if (value === null || value === undefined) {
+                return '';
+              }
+              // Handle strings with commas
+              return typeof value === 'string' 
+                ? `"${value.replace(/"/g, '""')}"` 
+                : String(value);
+            })
+            .join(',');
+        });
+        
+        csvContent = [headers, ...rows].join('\n');
+      } else {
+        // For non-standard data, provide simple representation
+        csvContent = typeof data === 'object' 
+          ? JSON.stringify(data) 
+          : String(data);
+      }
+      
+      return csvContent;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      
+      this.logger.error(`Error generating CSV: ${error.message}`, error.stack);
+      throw new InternalServerErrorException('Failed to generate CSV');
+    }
+  }
+
+
+  
+ 
 }

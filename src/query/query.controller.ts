@@ -12,6 +12,8 @@ import {
   ParseBoolPipe,
   HttpCode,
   HttpStatus,
+  Res,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { QueryService } from './query.service';
 import { CreateQueryDto } from './dto/create-query.dto';
@@ -28,6 +30,8 @@ import { MessageDto } from 'src/core/dtos/generic-response.dto';
 import { QueryEntity } from './entities/query.entity';
 import { LinkQueryToDashboardDto } from './dto/link-query-to-dashboard.dto';
 import { ExecuteQueryDto } from './dto/execute-query.dto';
+import { Response } from 'express';
+
 
 @Controller('query')
 @UseGuards(AuthGuard)
@@ -319,4 +323,36 @@ async execute(@Body() executeQueryDto: ExecuteQueryDto, @Request() req){
     const message = await this.queryService.generateDashboard(databaseId, userId);
     return {message}
   }
+
+  @Get('download-json/:queryId')
+  async downloadQueryDataAsJson(
+    @Param('queryId', ParseIntPipe) queryId: number,
+    @Res() res: Response,
+    @Request() req
+  ) {
+    const userId = req.user.id;
+    const data = await this.queryService.getQueryDataAsJson(queryId, userId);
+    
+    const filename = `query-${queryId}-data.json`;
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.send(JSON.stringify(data, null, 2));
+  }
+  
+  @Get('download-csv/:queryId')
+  async downloadQueryDataAsCsv(
+    @Param('queryId', ParseIntPipe) queryId: number,
+    @Res() res: Response,
+    @Request() req
+  ) {
+    const userId = req.user.id;
+    const csvContent = await this.queryService.getQueryDataAsCsv(queryId, userId);
+    
+    const filename = `query-${queryId}-data.csv`;
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    return res.send(csvContent);
+  }
+
+  
 }

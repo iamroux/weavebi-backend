@@ -8,8 +8,40 @@ import {
 import { CreateUserdbDto } from './dto/create-userdb.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UserdbEntity } from './entities/userdb.entity';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, Repository, Table, TableColumn, TableForeignKey } from 'typeorm';
 import { UpdateUserdbDto } from './dto/update-userdb.dto';
+
+
+// Additional interfaces for schema
+interface RelationshipMap {
+  [tableName: string]: Array<{
+    type: 'hasMany' | 'belongsTo';
+    table: string;
+    foreignKey: string;
+    localKey: string;
+  }>;
+}
+
+interface SchemaResult {
+  metadata: SchemaMetadata;
+  schema: Schema;
+  context: string; // LLM-friendly context
+}
+
+interface SchemaMetadata {
+  databaseType: string;
+  totalTables: number;
+  totalColumns: number;
+}
+
+interface Schema {
+  [tableName: string]: TableInfo;
+}
+
+interface TableInfo {
+  columns: ColumnInfo[];
+  foreignKeys?: ForeignKeyInfo[];
+}
 
 interface ColumnInfo {
   name: string;
@@ -17,6 +49,7 @@ interface ColumnInfo {
   isPrimary: boolean;
   isNullable?: boolean;
   isUnique?: boolean;
+  default?: string;
 }
 
 interface ForeignKeyInfo {
@@ -25,24 +58,6 @@ interface ForeignKeyInfo {
   referencedColumnName: string;
 }
 
-interface TableInfo {
-  columns: ColumnInfo[];
-  foreignKeys?: ForeignKeyInfo[];
-}
-
-interface Schema {
-  [tableName: string]: TableInfo;
-}
-
-interface SchemaMetadata {
-  totalTables: number;
-  totalColumns: number;
-}
-
-interface SchemaResult {
-  metadata: SchemaMetadata;
-  schema: Schema;
-}
 
 @Injectable()
 export class UserdbService {
@@ -54,7 +69,7 @@ export class UserdbService {
   ) {}
 
   // Optimized schema extraction
-  private async getSchema(
+  async getSchema(
     provider: 'mysql' | 'mariadb' | 'postgres' | 'mssql' | 'oracle',
     host: string,
     port: number,
@@ -71,124 +86,65 @@ export class UserdbService {
         password,
         database,
       });
-  
+
       try {
         await tempDataSource.initialize();
       } catch (initError) {
-        // Handle connection initialization errors
-        if (initError.code === '28P01' || initError.code === '28000') {
-          throw new BadRequestException('Authentication failed', {
-            description: 'Invalid username or password for database connection',
-          });
-        }
-  
-        if (initError.code === '3D000' || initError.code === '42000') {
-          throw new BadRequestException('Database access error', {
-            description: 'Specified database does not exist or cannot be accessed',
-          });
-        }
-  
-        if (initError.code === '08001' || initError.code === '08006') {
-          throw new BadRequestException('Connection failed', {
-            description: 'Unable to establish a connection to the database server',
-          });
-        }
-  
-        // Generic connection error
-        throw new BadRequestException('Database connection error', {
-          description: `Failed to initialize database connection: ${initError.message}`,
-          cause: initError,
-        });
+        this.handleConnectionError(initError);
       }
-  
+
       const queryRunner = tempDataSource.createQueryRunner();
-  
+
       try {
         const tables = await queryRunner.getTables();
-  
         const schema: Schema = {};
-  
-        const systemSchemas = [
-          'information_schema',
-          'sys',
-          'performance_schema',
-          'mysql',
-          'pg_catalog',
-          'SYS',
-          'SYSTEM',
-          'CTXSYS',
-        ];
-  
-        const systemTablePrefixes = ['pg_', '_pg_', 'sqlite_'];
-  
-        for (const table of tables) {
-          // Exclude system tables and schemas
-          if (
-            systemSchemas.includes(table.schema ?? '') || // Fallback to empty string if undefined
-            systemTablePrefixes.some((prefix) => table.name.startsWith(prefix))
-          ) {
-            continue;
-          }
-  
-          // Simplify column information
-          const columns: ColumnInfo[] = table.columns.map((col) => {
-            const columnInfo: ColumnInfo = {
-              name: col.name,
-              type: col.type.split('(')[0], // Simplify type (e.g., "varchar(255)" → "varchar")
-              isPrimary: col.isPrimary,
-            };
-  
-            // Only include isNullable if it's false
-            if (!col.isNullable) {
-              columnInfo.isNullable = col.isNullable;
-            }
-  
-            // Only include isUnique if it's true
-            if (col.isUnique) {
-              columnInfo.isUnique = col.isUnique;
-            }
-  
-            return columnInfo;
-          });
-  
-          // Simplify foreign key relationships
-          const foreignKeys: ForeignKeyInfo[] = table.foreignKeys.map((fk) => ({
-            columnName: fk.columnNames[0],
-            referencedTableName: fk.referencedTableName,
-            referencedColumnName: fk.referencedColumnNames[0],
-          }));
-  
-          // Add table to schema
+        const relationships: RelationshipMap = {}; // Track relationships for LLM context
+
+        // Filter out system tables
+        const filteredTables = this.filterSystemTables(tables, provider);
+
+        // Process each table
+        for (const table of filteredTables) {
+          // Normalize column information for LLM understanding
+          const columns = this.normalizeColumns(table.columns, provider);
+          
+          // Standardize foreign key formats across all DB types
+          const foreignKeys = this.normalizeForeignKeys(table.foreignKeys);
+          
+          // Track relationships for clearer LLM context
+          this.trackRelationships(relationships, table.name, foreignKeys);
+
+          // Add normalized table to schema
           schema[table.name] = {
             columns,
             ...(foreignKeys.length > 0 && { foreignKeys }),
           };
         }
-  
+
         await queryRunner.release();
         await tempDataSource.destroy();
-  
-        // Add metadata for LLM context
-        const schemaMetadata: SchemaMetadata = {
-          totalTables: Object.keys(schema).length,
-          totalColumns: Object.values(schema).reduce(
-            (acc, table) => acc + table.columns.length,
-            0,
-          ),
-        };
-  
+
+        // Generate LLM-friendly context
+        const schemaContext = this.generateLLMContext(schema, relationships, provider);
+
         return {
-          metadata: schemaMetadata,
+          metadata: {
+            databaseType: provider,
+            totalTables: Object.keys(schema).length,
+            totalColumns: Object.values(schema).reduce(
+              (acc, table) => acc + table.columns.length, 0
+            ),
+          },
           schema,
+          context: schemaContext // LLM-specific context for better query generation
         };
       } catch (tablesError) {
-        // Error while fetching tables
         throw new BadRequestException('Schema extraction failed', {
           description: `Unable to retrieve database tables: ${tablesError.message}`,
           cause: tablesError,
         });
       } finally {
-        // Ensure resources are released even if an error occurs
+        // Ensure resources are released
         try {
           await queryRunner.release();
           await tempDataSource.destroy();
@@ -197,13 +153,12 @@ export class UserdbService {
         }
       }
     } catch (error) {
-      // Catch-all for any unexpected errors
       this.logger.error(`Unexpected schema extraction error: ${error.message}`);
       
       if (error instanceof BadRequestException) {
         throw error;
       }
-  
+
       throw new BadRequestException('Unexpected database schema error', {
         description: 'Failed to extract database schema due to an unexpected error',
         cause: error,
@@ -211,6 +166,246 @@ export class UserdbService {
     }
   }
 
+   // Handle connection errors with standardized messaging
+   private handleConnectionError(initError: any): never {
+    if (initError.code === '28P01' || initError.code === '28000' || 
+        initError.message?.includes('authentication')) {
+      throw new BadRequestException('Authentication failed', {
+        description: 'Invalid username or password for database connection',
+      });
+    }
+
+    if (initError.code === '3D000' || initError.code === '42000' || 
+        initError.message?.includes('database') && initError.message?.includes('not exist')) {
+      throw new BadRequestException('Database access error', {
+        description: 'Specified database does not exist or cannot be accessed',
+      });
+    }
+
+    if (initError.code === '08001' || initError.code === '08006' || 
+        initError.message?.includes('connect') && initError.message?.includes('failed')) {
+      throw new BadRequestException('Connection failed', {
+        description: 'Unable to establish a connection to the database server',
+      });
+    }
+
+    throw new BadRequestException('Database connection error', {
+      description: `Failed to initialize database connection: ${initError.message}`,
+      cause: initError,
+    });
+  }
+
+  // Filter out system tables based on database provider
+  private filterSystemTables(tables: Table[], provider: string): Table[] {
+    const systemSchemas = [
+      'information_schema', 'sys', 'performance_schema', 'mysql',
+      'pg_catalog', 'SYS', 'SYSTEM', 'CTXSYS', 'MDSYS', 'DBSNMP', 
+      'tempdb', 'model', 'msdb', 'master'
+    ];
+
+    const systemTablePatterns = [
+      /^pg_/, /^_pg_/, /^sqlite_/, /^sys/, /^APEX_/, /^FLOWS_/,
+      /^msreplication_/, /^spt_/, /^sysdtslog/
+    ];
+
+    return tables.filter(table => {
+      // Skip tables in system schemas
+      if (systemSchemas.includes(table.schema ?? '')) {
+        return false;
+      }
+      
+      // Skip tables with system naming patterns
+      return !systemTablePatterns.some(pattern => pattern.test(table.name));
+    });
+  }
+
+  // Normalize column information for consistency across database types
+  private normalizeColumns(columns: TableColumn[], provider: string): ColumnInfo[] {
+    return columns.map(col => {
+      // Normalize type names for consistency
+      const normalizedType = this.normalizeDataType(col.type, provider);
+      
+      // Build column info with only essential properties
+      const columnInfo: ColumnInfo = {
+        name: col.name,
+        type: normalizedType,
+        isPrimary: col.isPrimary,
+      };
+
+      // Only include constraints that matter for query generation
+      if (!col.isNullable) {
+        columnInfo.isNullable = false;
+      }
+      
+      if (col.isUnique) {
+        columnInfo.isUnique = true;
+      }
+      
+      // Include default values if they exist
+      if (col.default !== undefined && col.default !== null) {
+        columnInfo.default = this.normalizeDefaultValue(col.default);
+      }
+
+      return columnInfo;
+    });
+  }
+ // Normalize data types across different database providers
+ private normalizeDataType(type: string, provider: string): string {
+  // Extract base type without size/precision
+  const baseType = type.split('(')[0].toLowerCase();
+  
+  // Map provider-specific types to standard SQL types
+  const typeMap: Record<string, Record<string, string>> = {
+    'mysql': {
+      'int': 'integer',
+      'varchar': 'varchar',
+      'datetime': 'timestamp',
+      'tinyint(1)': 'boolean',
+    },
+    'postgres': {
+      'int4': 'integer',
+      'int8': 'bigint',
+      'varchar': 'varchar',
+      'timestamptz': 'timestamp',
+      'bool': 'boolean',
+    },
+    'oracle': {
+      'number': 'numeric',
+      'varchar2': 'varchar',
+      'date': 'timestamp',
+    },
+    'mssql': {
+      'nvarchar': 'varchar',
+      'datetime': 'timestamp',
+      'bit': 'boolean',
+    }
+  };
+
+  // Return normalized type if available, otherwise return the base type
+  return typeMap[provider]?.[baseType] || baseType;
+}
+// Standardize default values
+private normalizeDefaultValue(defaultValue: any): string {
+  if (defaultValue === null) {
+    return 'NULL';
+  }
+  
+  if (typeof defaultValue === 'string') {
+    // Clean up function calls and standardize formatting
+    return defaultValue.replace(/^(nextval\(|now\(|uuid_generate_v4\().*\)$/, 'AUTO_GENERATED');
+  }
+  
+  return String(defaultValue);
+}
+
+// Normalize foreign keys for consistency
+private normalizeForeignKeys(foreignKeys: TableForeignKey[]): ForeignKeyInfo[] {
+  return foreignKeys.map(fk => ({
+    columnName: fk.columnNames[0],
+    referencedTableName: fk.referencedTableName,
+    referencedColumnName: fk.referencedColumnNames[0],
+  }));
+}
+
+
+ // Track relationships between tables for LLM context
+ private trackRelationships(
+  relationships: RelationshipMap,
+  tableName: string,
+  foreignKeys: ForeignKeyInfo[]
+): void {
+  if (!relationships[tableName]) {
+    relationships[tableName] = [];
+  }
+  
+  for (const fk of foreignKeys) {
+    // Add "has many" relationship
+    if (!relationships[fk.referencedTableName]) {
+      relationships[fk.referencedTableName] = [];
+    }
+    
+    relationships[fk.referencedTableName].push({
+      type: 'hasMany',
+      table: tableName,
+      foreignKey: fk.columnName,
+      localKey: fk.referencedColumnName
+    });
+    
+    // Add "belongs to" relationship
+    relationships[tableName].push({
+      type: 'belongsTo',
+      table: fk.referencedTableName,
+      foreignKey: fk.columnName,
+      localKey: fk.referencedColumnName
+    });
+  }
+}
+
+// Generate LLM-friendly context string
+private generateLLMContext(
+  schema: Schema,
+  relationships: RelationshipMap,
+  provider: string
+): string {
+  let context = `Database Type: ${provider}\n\n`;
+  context += `Table Summary:\n`;
+  
+  // Add table information in a format that's easy for LLMs to understand
+  Object.entries(schema).forEach(([tableName, tableInfo]) => {
+    context += `\nTable: ${tableName}\n`;
+    
+    // Primary key information
+    const primaryKeys = tableInfo.columns
+      .filter(col => col.isPrimary)
+      .map(col => col.name);
+    
+    if (primaryKeys.length > 0) {
+      context += `Primary Key(s): ${primaryKeys.join(', ')}\n`;
+    }
+    
+    // Important columns (adding semantic meaning)
+    context += `Columns:\n`;
+    tableInfo.columns.forEach(col => {
+      let colDescription = `  - ${col.name} (${col.type})`;
+      
+      if (col.isPrimary) {
+        colDescription += ` PRIMARY KEY`;
+      }
+      
+      if (col.isUnique) {
+        colDescription += ` UNIQUE`;
+      }
+      
+      if (col.isNullable === false) {
+        colDescription += ` NOT NULL`;
+      }
+      
+      context += `${colDescription}\n`;
+    });
+    
+    // Relationships in natural language
+    if (relationships[tableName] && relationships[tableName].length > 0) {
+      context += `Relationships:\n`;
+      relationships[tableName].forEach(rel => {
+        if (rel.type === 'hasMany') {
+          context += `  - One ${tableName} has many ${rel.table} (via ${rel.table}.${rel.foreignKey})\n`;
+        } else if (rel.type === 'belongsTo') {
+          context += `  - Each ${tableName} belongs to one ${rel.table} (via ${tableName}.${rel.foreignKey})\n`;
+        }
+      });
+    }
+  });
+  
+  // Add query examples for common patterns
+  context += `\nExample Queries:\n`;
+  context += `1. To join tables with foreign keys, use: SELECT a.*, b.* FROM table_a a JOIN table_b b ON a.foreign_key = b.primary_key\n`;
+  context += `2. For filtering with NULL values, use: WHERE column IS NULL or WHERE column IS NOT NULL\n`;
+  
+  return context;
+}
+
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
   // Create a new database connection
   async create(userId: number, createUserdbDto: CreateUserdbDto) {
     try {
@@ -394,10 +589,7 @@ export class UserdbService {
         }
       }
   
-      return { 
-        message: 'Connection successful', 
-        status: true 
-      };
+      return "Connection is OK"
     } catch (error) {
       this.logger.error(`Failed to test connection: ${error.message}`);
   
