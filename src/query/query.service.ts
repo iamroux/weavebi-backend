@@ -19,6 +19,9 @@ import { DashboardEntity } from '../dashboard/entities/dashboard.entity';
 import { EncryptionService } from './encryption.service';
 import { ExecuteQueryDto } from './dto/execute-query.dto';
 import { DashboardService } from 'src/dashboard/dashboard.service';
+import { json2csv } from 'json-2-csv';
+import { parse } from 'path';
+
 
 // Global Constants
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -983,55 +986,25 @@ export class QueryService {
   
   async getQueryDataAsCsv(queryId: number, userId: number) {
     try {
-      const data = await this.getQueryDataAsJson(queryId, userId);
-      
-      // Handle empty data case
-      if (!data || (Array.isArray(data) && data.length === 0)) {
-        return "No data";
+      const query = await this.queryRepo.findOne({where: {id:queryId, userId:userId}})
+      if(!query){
+        throw new NotFoundException('Query not found or access denied')
       }
-      
-      let csvContent = '';
-      
-      // If data is an array of objects (most common case)
-      if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'object') {
-        // Get headers from first item
-        const headers = Object.keys(data[0]).join(',');
-        
-        // Generate rows
-        const rows = data.map(item => {
-          return Object.values(item)
-            .map(value => {
-              if (value === null || value === undefined) {
-                return '';
-              }
-              // Handle strings with commas
-              return typeof value === 'string' 
-                ? `"${value.replace(/"/g, '""')}"` 
-                : String(value);
-            })
-            .join(',');
-        });
-        
-        csvContent = [headers, ...rows].join('\n');
-      } else {
-        // For non-standard data, provide simple representation
-        csvContent = typeof data === 'object' 
-          ? JSON.stringify(data) 
-          : String(data);
-      }
-      
-      return csvContent;
+
+      const data = query.data;
+     const parsedData = JSON.parse(data);
+
+      let converter = require('json-2-csv');
+      const csv = await converter.json2csv(parsedData);
+      return csv;
+     
     } catch (error) {
       if (error instanceof NotFoundException) {
-        throw error;
+        throw error
       }
-      
       this.logger.error(`Error generating CSV: ${error.message}`, error.stack);
       throw new InternalServerErrorException('Failed to generate CSV');
     }
   }
-
-
-  
  
 }
