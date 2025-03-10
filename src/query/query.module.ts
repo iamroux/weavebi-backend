@@ -9,14 +9,18 @@ import { UserdbEntity } from 'src/userdb/entities/userdb.entity';
 import { DashboardModule } from 'src/dashboard/dashboard.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([QueryEntity]), AuthModule, DashboardModule],
+  imports: [
+    TypeOrmModule.forFeature([QueryEntity]),
+    AuthModule,
+    DashboardModule,
+  ],
 
   controllers: [QueryController],
   providers: [QueryService, EncryptionService],
 })
 export class QueryModule implements OnModuleInit {
-  constructor(private readonly encryptionService:EncryptionService){}
+  constructor(private readonly encryptionService: EncryptionService) {}
   onModuleInit() {
-    UserdbEntity.setEncryptoinService(this.encryptionService)
+    UserdbEntity.setEncryptoinService(this.encryptionService);
   }
 }

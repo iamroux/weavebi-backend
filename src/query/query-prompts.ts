@@ -87,7 +87,6 @@ Example response:
 }
 Ensure the your response adheres to the json syntax and return nothing else other than required json. Do not return the json in a code block. Make sure to keep variety of output types.`;
 
-
 export const sampleDashboardPrompt = `You are an expert SQL assistant. Given a database schema and databaseId, your task is to generate 10 of the most insightful and useful SQL queries by
 analyzing the schema
 and identifying a relevant theme or purpose (e.g., Sales, Human Resources, Inventory, etc.).
@@ -146,7 +145,6 @@ Ensure the response adheres to proper json syntax and returns nothing else other
 // 1. The Database Schema.
 // 2. Dashboard Data: SQL queries and their corresponding JSON data.
 
-
 // Your task is:
 // 1. Analyze the SQL queries and JSON data.
 // 2. Generate:
@@ -160,7 +158,7 @@ Ensure the response adheres to proper json syntax and returns nothing else other
 // {
 //   "queries": [
 //     {
-  
+
 //       "query": "SELECT 'users' AS category, COUNT(*) AS count FROM users UNION ALL SELECT 'queries' AS category, COUNT(*) AS count FROM queries UNION ALL SELECT 'databases' AS category, COUNT(*) AS count FROM databases LIMIT 100;",
 //       "outputType": "pie chart",
 //       "data": "{\"graph_type\": \"pie\", \"title\": \"Distribution of Users, Queries, and Databases\", \"datasetLabel\": \"Count of Users, Queries, and Databases\", \"labels\": [\"users\", \"queries\", \"databases\"], \"values\": [2, 2, 2]}"

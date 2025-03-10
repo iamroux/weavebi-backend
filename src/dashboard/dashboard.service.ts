@@ -68,8 +68,12 @@ export class DashboardService {
 
       return { message: 'Dashboard created successfully' };
     } catch (error) {
-      if(error.code === '23503'){throw new BadRequestException('Invalid database ID or access denied')}
-      if(error instanceof ConflictException){throw error}
+      if (error.code === '23503') {
+        throw new BadRequestException('Invalid database ID or access denied');
+      }
+      if (error instanceof ConflictException) {
+        throw error;
+      }
       this.logger.error(`Error creating dashboard: ${error.message}`);
       throw new InternalServerErrorException('Failed to create dashboard');
     }
@@ -204,16 +208,18 @@ export class DashboardService {
       await this.dashboardRepo.save(updatedDashboard);
       return { message: 'Dashboard updated successfully', updatedDashboard };
     } catch (error) {
-      if(error instanceof BadRequestException){throw error}
-      if(error instanceof NotFoundException){throw error}
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
       this.logger.error(`Failed to update dashboard ${id}: ${error.message}`);
       throw new InternalServerErrorException("Couldn't update dashboard");
     }
   }
 
-  async updatePosition(
-    dto: UpdateDashboardQueryPositionDto,
-  ) {
+  async updatePosition(dto: UpdateDashboardQueryPositionDto) {
     const { dashboardId, queryId, x, y, z, h } = dto;
     try {
       // Check if position already exists using query builder
@@ -235,7 +241,7 @@ export class DashboardService {
           .andWhere('queryId = :queryId', { queryId })
           .execute();
 
-        return'Position updated successfully';
+        return 'Position updated successfully';
       }
 
       // Insert new position if it does not exist
@@ -253,7 +259,7 @@ export class DashboardService {
         })
         .execute();
 
-      return'Position created successfully';
+      return 'Position created successfully';
     } catch (error) {
       throw new InternalServerErrorException(
         `Failed to update dashboard ${dashboardId}: ${error.message}`,
@@ -270,14 +276,14 @@ export class DashboardService {
       const result = await this.dashboardRepo.delete(id);
 
       if (result.affected === 0) {
-        throw new BadRequestException('Dashboard not found')
+        throw new BadRequestException('Dashboard not found');
       }
 
       return 'Dashboard deleted successfully';
     } catch (error) {
       this.logger.error(`Failed to delete dashboard ${id}: ${error.message}`);
 
-      if(error instanceof BadRequestException){
+      if (error instanceof BadRequestException) {
         throw error;
       }
       throw new InternalServerErrorException("Couldn't delete dashboard");
@@ -290,19 +296,23 @@ export class DashboardService {
         where: { id, userId },
         relations: ['queries', 'positions', 'positions.query'],
       });
-  
+
       if (!dashboard) {
-       throw new BadRequestException('Dashboard not found')
+        throw new BadRequestException('Dashboard not found');
       }
-  
+
       // Map positions to their corresponding queries
       const queriesWithPositions = dashboard.queries.map((query) => {
         const position = dashboard.positions.find(
-          (pos) => pos.queryId === query.id
+          (pos) => pos.queryId === query.id,
         );
-  
+
         return {
-          ...query, data: query.outputType === 'descriptive' ? query.data: JSON.parse(query.data), // parse JSON data
+          ...query,
+          data:
+            query.outputType === 'descriptive'
+              ? query.data
+              : JSON.parse(query.data), // parse JSON data
           position: position
             ? {
                 x: position.x,
@@ -313,7 +323,7 @@ export class DashboardService {
             : null,
         };
       });
-  
+
       return {
         id: dashboard.id,
         name: dashboard.name,
@@ -325,8 +335,7 @@ export class DashboardService {
         queries: queriesWithPositions,
       };
     } catch (error) {
-
-      if (error instanceof BadRequestException){
+      if (error instanceof BadRequestException) {
         throw error;
       }
       this.logger.error(`Failed to fetch dashboard ${id}: ${error.message}`);

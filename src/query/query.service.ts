@@ -12,16 +12,13 @@ import {
 import { CreateQueryDto } from './dto/create-query.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryEntity } from './entities/query.entity';
-import { DataSource, Not, Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import OpenAI from 'openai';
 import * as QueryPrompts from './query-prompts';
 import { DashboardEntity } from '../dashboard/entities/dashboard.entity';
 import { EncryptionService } from './encryption.service';
 import { ExecuteQueryDto } from './dto/execute-query.dto';
 import { DashboardService } from 'src/dashboard/dashboard.service';
-import { json2csv } from 'json-2-csv';
-import { parse } from 'path';
-
 
 // Global Constants
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -38,7 +35,7 @@ export class QueryService {
     @InjectRepository(QueryEntity)
     private readonly queryRepo: Repository<QueryEntity>,
     private readonly encryptionService: EncryptionService,
-    private readonly dashboardService: DashboardService
+    private readonly dashboardService: DashboardService,
   ) {}
 
   // Helper method to generate SQL query using OpenAI
@@ -98,12 +95,15 @@ export class QueryService {
       return cleanResponse;
     } catch (error) {
       if (
-        error.constructor.name === 'APIConnectionError' || 
+        error.constructor.name === 'APIConnectionError' ||
         error.message.includes('Connection error') ||
-        (error.cause?.code === 'EAI_AGAIN') ||
-        (error.cause?.errno === 'EAI_AGAIN')
+        error.cause?.code === 'EAI_AGAIN' ||
+        error.cause?.errno === 'EAI_AGAIN'
       ) {
-        throw new HttpException('Network issue connecting to AI service.', HttpStatus.SERVICE_UNAVAILABLE)
+        throw new HttpException(
+          'Network issue connecting to AI service.',
+          HttpStatus.SERVICE_UNAVAILABLE,
+        );
       }
       this.logger.error('Error generating SQL query:', error);
       throw new InternalServerErrorException('Failed to generate SQL query.');
@@ -197,7 +197,9 @@ export class QueryService {
 
       // Extract query and database details
       const { query, outputType } = queryEntity;
-      const password = await this.encryptionService.decrypt(queryEntity.database.password);
+      const password = await this.encryptionService.decrypt(
+        queryEntity.database.password,
+      );
       const { host, username, name, port, schema, provider } =
         queryEntity.database;
 
@@ -256,7 +258,8 @@ export class QueryService {
       }
 
       // Update and save query entity
-      queryEntity.data = outputType === 'tabular' ? JSON.stringify(finalData) : finalData; // need to convert tabular data into json object.
+      queryEntity.data =
+        outputType === 'tabular' ? JSON.stringify(finalData) : finalData; // need to convert tabular data into json object.
       queryEntity.generatedSqlQuery = generatedSqlQuery;
       await this.queryRepo.save(queryEntity);
 
@@ -267,13 +270,20 @@ export class QueryService {
         query: queryEntity.query,
         outputType: queryEntity.outputType,
         generatedSqlQuery: queryEntity.generatedSqlQuery,
-        data: queryEntity.outputType === 'descriptive' ? queryEntity.data : JSON.parse(queryEntity.data), // parse if outputType is not descriptive
+        data:
+          queryEntity.outputType === 'descriptive'
+            ? queryEntity.data
+            : JSON.parse(queryEntity.data), // parse if outputType is not descriptive
         createdAt: queryEntity.createdAt,
         updatedAt: queryEntity.updatedAt,
       };
     } catch (error) {
-      if(error instanceof  NotFoundException){throw error}
-      if(error instanceof HttpException){throw error}
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      if (error instanceof HttpException) {
+        throw error;
+      }
       this.logger.error(`Failed to run query: ${error.message}`);
       throw new InternalServerErrorException(
         `Failed to run query: ${error.message}`,
@@ -313,8 +323,10 @@ export class QueryService {
       }
 
       const { query, outputType } = createQueryDto;
-      const password = await this.encryptionService.decrypt(database[0].password);
-      const { host, username,  name, port, schema, provider } = database[0];
+      const password = await this.encryptionService.decrypt(
+        database[0].password,
+      );
+      const { host, username, name, port, schema, provider } = database[0];
 
       let finalData: any;
       let generatedSqlQuery: string;
@@ -383,63 +395,75 @@ export class QueryService {
         this.logger.log('query saved');
       }
 
-      const result =  {
+      const result = {
         id: queryEntity.id,
         name: queryEntity.name,
         query: queryEntity.query,
         outputType: queryEntity.outputType,
         generatedSqlQuery: queryEntity.generatedSqlQuery,
-        data: queryEntity.outputType === 'descriptive' ? queryEntity.data : JSON.parse(queryEntity.data), // parse if outputType is not descriptive
+        data:
+          queryEntity.outputType === 'descriptive'
+            ? queryEntity.data
+            : JSON.parse(queryEntity.data), // parse if outputType is not descriptive
         createdAt: queryEntity.createdAt,
         updatedAt: queryEntity.updatedAt,
       };
       return {
-        statusCode: save ? HttpStatus.CREATED: HttpStatus.OK,
-        message: save ? 'Query executed and saved successfully' : 'Query executed successfully',
-        data: result
-      }
+        statusCode: save ? HttpStatus.CREATED : HttpStatus.OK,
+        message: save
+          ? 'Query executed and saved successfully'
+          : 'Query executed successfully',
+        data: result,
+      };
     } catch (error) {
-      if(error instanceof BadRequestException){throw error}
-      if(error instanceof HttpException){throw error}
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      if (error instanceof HttpException) {
+        throw error;
+      }
       this.logger.error(`Failed to run direct query: ${error.message}`);
-      throw  new InternalServerErrorException(
-            `Failed to execute query: ${error.message}`,
-          );
+      throw new InternalServerErrorException(
+        `Failed to execute query: ${error.message}`,
+      );
     }
   }
 
-  async execute(executeQueryDto: ExecuteQueryDto, userId: number){
+  async execute(executeQueryDto: ExecuteQueryDto, userId: number) {
     try {
-    const database = await this.queryRepo.query(
-      `SELECT * FROM databases WHERE "id"=$1 AND "userId"=$2`,
-      [executeQueryDto.databaseId, userId],
-    );
+      const database = await this.queryRepo.query(
+        `SELECT * FROM databases WHERE "id"=$1 AND "userId"=$2`,
+        [executeQueryDto.databaseId, userId],
+      );
 
-    if (!database.length) {
-      throw new NotFoundException('Database not found');
+      if (!database.length) {
+        throw new NotFoundException('Database not found');
+      }
+
+      const password = await this.encryptionService.decrypt(
+        database[0].password,
+      );
+      const { host, username, name, port, provider } = database[0];
+
+      const dataFromDatabase = await this.executeSqlQuery(
+        executeQueryDto.sqlQuery,
+        host,
+        username,
+        password,
+        name,
+        port,
+        provider,
+      );
+
+      return {
+        Output: dataFromDatabase,
+      };
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new InternalServerErrorException('Failed to execute query.');
     }
-
-    const password = await this.encryptionService.decrypt(database[0].password);
-    const { host, username,  name, port,  provider } = database[0];
-
-    const dataFromDatabase = await this.executeSqlQuery(
-      executeQueryDto.sqlQuery,
-      host,
-      username,
-      password,
-      name,
-      port,
-      provider,
-    )
-
-    return {
-      "Output": dataFromDatabase
-    }
-  }
-  catch(error) {
-    if(error instanceof BadRequestException){throw error}
-    throw new InternalServerErrorException('Failed to execute query.')
-  }
   }
 
   async create(userId: number, createQueryDto: CreateQueryDto) {
@@ -465,9 +489,11 @@ export class QueryService {
       });
       await this.queryRepo.save(query);
 
-      return  query;
+      return query;
     } catch (error) {
-      if (error instanceof ConflictException){throw error}
+      if (error instanceof ConflictException) {
+        throw error;
+      }
       this.logger.error(
         `Failed to save query for user ${userId} to our database: ${error.message}`,
       );
@@ -499,7 +525,9 @@ export class QueryService {
 
       return 'Query updated successfully';
     } catch (error) {
-      if(error instanceof BadRequestException){throw error}
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
       this.logger.error(
         `Failed to update query for user ${userId}: ${error.message}`,
       );
@@ -530,7 +558,9 @@ export class QueryService {
 
       return 'Query linked to dashboard successfully';
     } catch (error) {
-      if(error instanceof NotFoundException){throw error}
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
       this.logger.error(`Failed to link query to dashboard: ${error.message}`);
       throw new InternalServerErrorException(
         'Failed to link query to dashboard',
@@ -561,7 +591,9 @@ export class QueryService {
 
       return 'Query unlinked from dashboard successfully';
     } catch (error) {
-      if(error instanceof NotFoundException){throw error}
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
       this.logger.error(
         `Failed to unlink query from dashboard: ${error.message}`,
       );
@@ -594,8 +626,10 @@ export class QueryService {
 
       return results;
     } catch (error) {
-      if (error instanceof NotFoundException){throw error}
-      this.logger.error(`Couldnt execute queries. Error: ${error.message}`)
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error(`Couldnt execute queries. Error: ${error.message}`);
       throw new InternalServerErrorException("Couldn't execute queries");
     }
   }
@@ -666,9 +700,7 @@ export class QueryService {
     }
   }
 
-  async getExecutedQueryCount(
-    userId: number,
-  ): Promise<{ count: number }> {
+  async getExecutedQueryCount(userId: number): Promise<{ count: number }> {
     try {
       const count = await this.queryRepo.query(
         'SELECT COUNT(*)::int AS count FROM queries WHERE data IS NOT NULL AND "userId" = $1',
@@ -677,9 +709,7 @@ export class QueryService {
 
       return { count: count[0]?.count ?? 0 };
     } catch (error) {
-      this.logger.error(
-        `Failed to fetch query count: ${error.message}`,
-      );
+      this.logger.error(`Failed to fetch query count: ${error.message}`);
       throw new InternalServerErrorException("Couldn't fetch query count");
     }
   }
@@ -742,7 +772,9 @@ export class QueryService {
       await this.queryRepo.delete(id);
       return 'Query and related dashboard entries deleted successfully';
     } catch (error) {
-      if(error instanceof ForbiddenException){throw error}
+      if (error instanceof ForbiddenException) {
+        throw error;
+      }
       this.logger.error(`Failed to delete query ${id}: ${error.message}`);
       throw new InternalServerErrorException('Failed to delete query');
     }
@@ -779,12 +811,15 @@ export class QueryService {
       return generatedQueries;
     } catch (error) {
       if (
-        error.constructor.name === 'APIConnectionError' || 
+        error.constructor.name === 'APIConnectionError' ||
         error.message.includes('Connection error') ||
-        (error.cause?.code === 'EAI_AGAIN') ||
-        (error.cause?.errno === 'EAI_AGAIN')
+        error.cause?.code === 'EAI_AGAIN' ||
+        error.cause?.errno === 'EAI_AGAIN'
       ) {
-        throw new HttpException('Network issue connecting to AI service.', HttpStatus.SERVICE_UNAVAILABLE)
+        throw new HttpException(
+          'Network issue connecting to AI service.',
+          HttpStatus.SERVICE_UNAVAILABLE,
+        );
       }
 
       this.logger.error(`Failed to generate queries: ${error.message}`);
@@ -811,7 +846,6 @@ export class QueryService {
   //   const mappings =
   //     response.choices[0].message.content?.trim() ?? '';
   //   return mappings;
-  
 
   // }
 
@@ -862,28 +896,31 @@ export class QueryService {
       return { insights: insights };
     } catch (error) {
       if (
-        error.constructor.name === 'APIConnectionError' || 
+        error.constructor.name === 'APIConnectionError' ||
         error.message.includes('Connection error') ||
-        (error.cause?.code === 'EAI_AGAIN') ||
-        (error.cause?.errno === 'EAI_AGAIN')
+        error.cause?.code === 'EAI_AGAIN' ||
+        error.cause?.errno === 'EAI_AGAIN'
       ) {
-        throw new HttpException('Network issue connecting to AI service.', HttpStatus.SERVICE_UNAVAILABLE)
+        throw new HttpException(
+          'Network issue connecting to AI service.',
+          HttpStatus.SERVICE_UNAVAILABLE,
+        );
       }
-      if(error instanceof BadRequestException){throw error}
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
       this.logger.error(`Failed to get insights: ${error.message}`);
       throw new InternalServerErrorException('Failed to get insights');
     }
   }
 
-
-  async generateDashboard(databaseId:number, userId: number){
-
+  async generateDashboard(databaseId: number, userId: number) {
     try {
-
       // step 1: generate a bunch of queries
       const schemaQuery = await this.queryRepo.query(
-        `SELECT * FROM databases WHERE "id" = $1;`, [databaseId]
-      )
+        `SELECT * FROM databases WHERE "id" = $1;`,
+        [databaseId],
+      );
 
       const schema = schemaQuery[0].schema;
       const openai = new OpenAI({
@@ -900,19 +937,18 @@ export class QueryService {
           { role: 'user', content: prompt },
         ],
       });
-      const output =
-        response.choices[0].message.content?.trim() ?? '';
-        const parsedOutput = JSON.parse(output);
+      const output = response.choices[0].message.content?.trim() ?? '';
+      const parsedOutput = JSON.parse(output);
 
       // step 2: save the queries:
       const queries = JSON.parse(output).queries;
-      const ids : number[]= [];
+      const ids: number[] = [];
       for (const query of queries) {
         const data = await this.create(userId, {
           name: query.name,
           query: query.query,
           outputType: query.outputType,
-          databaseId: databaseId, 
+          databaseId: databaseId,
         });
         ids.push(data.id);
       }
@@ -927,8 +963,9 @@ export class QueryService {
 
       // step 4: link queries to dashboard
       const dashboard = await this.queryRepo.query(
-        `SELECT * FROM dashboards WHERE "name" = $1;`, [parsedOutput.name]
-      )
+        `SELECT * FROM dashboards WHERE "name" = $1;`,
+        [parsedOutput.name],
+      );
       const dashboardId = dashboard[0].id;
       for (const id of ids) {
         await this.linkQueryToDashboard(userId, id, dashboardId);
@@ -936,71 +973,82 @@ export class QueryService {
 
       // step 5: parallel execute all queries
       await Promise.all(ids.map((id) => this.runQuery(id, userId)));
-      return "Sample dashboard generated successfully";
-
+      return 'Sample dashboard generated successfully';
     } catch (error) {
       if (
-        error.constructor.name === 'APIConnectionError' || 
+        error.constructor.name === 'APIConnectionError' ||
         error.message.includes('Connection error') ||
-        (error.cause?.code === 'EAI_AGAIN') ||
-        (error.cause?.errno === 'EAI_AGAIN')
+        error.cause?.code === 'EAI_AGAIN' ||
+        error.cause?.errno === 'EAI_AGAIN'
       ) {
-        throw new HttpException('Network issue connecting to AI service.', HttpStatus.SERVICE_UNAVAILABLE)
+        throw new HttpException(
+          'Network issue connecting to AI service.',
+          HttpStatus.SERVICE_UNAVAILABLE,
+        );
       }
-      this.logger.error(`Failed to generate sample dashboard: ${error.message}`);
-      throw new InternalServerErrorException('Couldnt generate sample dashboard');
+      this.logger.error(
+        `Failed to generate sample dashboard: ${error.message}`,
+      );
+      throw new InternalServerErrorException(
+        'Couldnt generate sample dashboard',
+      );
     }
   }
-
 
   async getQueryDataAsJson(queryId: number, userId: number) {
     try {
       const result = await this.queryRepo.query(
         `SELECT * FROM queries WHERE id = $1 AND "userId" = $2`,
-        [queryId, userId]
+        [queryId, userId],
       );
-      
+
       if (!result || result.length === 0) {
-        throw new NotFoundException(`Query with id ${queryId} not found or you don't have access to it`);
+        throw new NotFoundException(
+          `Query with id ${queryId} not found or you don't have access to it`,
+        );
       }
-      
+
       // Get the data from the result
       const rawData = result[0].data;
-      
+
       // If no data, return empty array
       if (!rawData) {
         return [];
       }
-      
+
       // Try to directly return the data if it's already in proper format
       return rawData;
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
       }
-      
-      this.logger.error(`Error processing query data: ${error.message}`, error.stack);
+
+      this.logger.error(
+        `Error processing query data: ${error.message}`,
+        error.stack,
+      );
       throw new InternalServerErrorException('Failed to process query data');
     }
   }
-  
+
   async getQueryDataAsCsv(queryId: number, userId: number) {
     try {
-      const query = await this.queryRepo.findOne({where: {id:queryId, userId:userId}})
-      if(!query){
-        throw new NotFoundException('Query not found or access denied')
+      const query = await this.queryRepo.findOne({
+        where: { id: queryId, userId: userId },
+      });
+      if (!query) {
+        throw new NotFoundException('Query not found or access denied');
       }
 
       const data = query.data;
-     const parsedData = JSON.parse(data);
+      const parsedData = JSON.parse(data);
 
       let converter = require('json-2-csv');
       const csv = await converter.json2csv(parsedData);
       return csv;
-     
     } catch (error) {
       if (error instanceof NotFoundException) {
-        throw error
+        throw error;
       }
       this.logger.error(`Error generating CSV: ${error.message}`, error.stack);
       throw new InternalServerErrorException('Failed to generate CSV');
@@ -1009,28 +1057,24 @@ export class QueryService {
 
   async findOne(id: number, userId: number) {
     try {
-    const query = await this.queryRepo.findOne({
-      where: { id, userId },
-    });
+      const query = await this.queryRepo.findOne({
+        where: { id, userId },
+      });
 
-    if (!query) {
-      throw new NotFoundException('Query not found or unauthorized');
+      if (!query) {
+        throw new NotFoundException('Query not found or unauthorized');
+      }
+
+      if (query.outputType !== 'descriptive') {
+        query.data = JSON.parse(query.data);
+      }
+      return query;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error(`Failed to fetch query ${id}: ${error.message}`);
+      throw new InternalServerErrorException('Failed to fetch query');
     }
-
-    if(query.outputType!=='descriptive'){
-      query.data = JSON.parse(query.data)
-    }
-    return query;
   }
-
-  catch(error){
-    if(error instanceof NotFoundException){throw error}
-    this.logger.error(`Failed to fetch query ${id}: ${error.message}`);
-    throw new InternalServerErrorException('Failed to fetch query');
-  }
-  
-  }
-
-
- 
 }

@@ -3,7 +3,6 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty } from 'class-validator';
 
 export class CreateUserdbDto {
-
   @ApiProperty()
   @Optional()
   connectionName: string;

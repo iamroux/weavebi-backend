@@ -13,25 +13,20 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { 
-  createCipheriv, 
-  randomBytes, 
-  scrypt 
-} from 'crypto';
+import { createCipheriv, randomBytes, scrypt } from 'crypto';
 import { promisify } from 'util';
 import { EncryptionService } from 'src/query/encryption.service';
-
 
 @Entity('databases')
 export class UserdbEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({nullable: true})
+  @Column({ nullable: true })
   connectionName: string;
 
-  @Column({nullable: true})
-  description: string
+  @Column({ nullable: true })
+  description: string;
 
   @Column()
   provider: string;
@@ -75,18 +70,22 @@ export class UserdbEntity {
   dashboards: DashboardEntity[];
 
   private static encryptionService: EncryptionService;
-  public static setEncryptoinService(service: EncryptionService){
-    UserdbEntity.encryptionService=service
+  public static setEncryptoinService(service: EncryptionService) {
+    UserdbEntity.encryptionService = service;
   }
-
-
 
   @BeforeInsert()
   @BeforeUpdate()
-async encryptPassword() {
+  async encryptPassword() {
     // Only encrypt if the password is not already encrypted and the service is available
-    if (this.password && !this.password.includes(':') && UserdbEntity.encryptionService) {
-      this.password = await UserdbEntity.encryptionService.encrypt(this.password);
+    if (
+      this.password &&
+      !this.password.includes(':') &&
+      UserdbEntity.encryptionService
+    ) {
+      this.password = await UserdbEntity.encryptionService.encrypt(
+        this.password,
+      );
     }
   }
 }

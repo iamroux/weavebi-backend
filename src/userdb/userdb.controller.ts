@@ -48,7 +48,6 @@ export class UserdbController {
   @ApiProperty({ type: CreateUserdbDto })
   @ApiResponse({ type: MessageDto })
   @HttpCode(HttpStatus.OK)
-  
   async test(@Request() req, @Body() createUserdbDto: CreateUserdbDto) {
     const userId = req.user.id;
     const message = await this.userdbService.test(userId, createUserdbDto);

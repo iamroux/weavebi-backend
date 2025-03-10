@@ -49,7 +49,6 @@ export class AuthService {
     return user;
   }
 
-
   async create(createAuthDto: CreateAuthDto) {
     try {
       const existingUser = await this.getUserByEmail(createAuthDto.email);
@@ -61,14 +60,13 @@ export class AuthService {
       return 'User created successfully.';
     } catch (error) {
       this.logger.error(`Failed to create user: ${error.message}`);
-  
+
       if (error instanceof ConflictException) {
         throw error;
       }
       throw new Error('Failed to create user');
     }
   }
-  
 
   async login(data: LoginDto) {
     const { email, password } = data;
@@ -101,8 +99,7 @@ export class AuthService {
     // Generate a random 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000);
 
-    
-  const emailTemplate = `
+    const emailTemplate = `
   <div style="font-family: Arial, sans-serif; line-height: 1.6; background: #f9f9f9; padding: 20px;">
     <table style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
       <tr>
@@ -118,12 +115,11 @@ export class AuthService {
   </div>
 `;
 
-
     try {
       await this.mailer.sendMail({
         to: email,
         subject: 'Password reset OTP',
-        html: emailTemplate
+        html: emailTemplate,
       });
       await this.redisClient.set(`otp:${email}`, otp, 'EX', 300);
     } catch (error) {

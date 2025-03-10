@@ -1,10 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { 
-  createCipheriv, 
-  createDecipheriv, 
-  randomBytes, 
-  scrypt 
-} from 'crypto';
+import { createCipheriv, createDecipheriv, randomBytes, scrypt } from 'crypto';
 import { promisify } from 'util';
 
 @Injectable()
@@ -25,7 +20,9 @@ export class EncryptionService {
     const salt = process.env.ENCRYPTION_SALT;
 
     if (!password || !salt) {
-      throw new Error('Encryption configuration is missing. Set ENCRYPTION_PASSWORD and ENCRYPTION_SALT in environment variables.');
+      throw new Error(
+        'Encryption configuration is missing. Set ENCRYPTION_PASSWORD and ENCRYPTION_SALT in environment variables.',
+      );
     }
 
     return { password, salt };
@@ -33,7 +30,7 @@ export class EncryptionService {
 
   // Derive key using scrypt
   private async deriveKey(password: string, salt: string): Promise<Buffer> {
-    return await promisify(scrypt)(password, salt, 32) as Buffer;
+    return (await promisify(scrypt)(password, salt, 32)) as Buffer;
   }
 
   // Async encryption method
@@ -54,7 +51,7 @@ export class EncryptionService {
       // Encrypt the text
       const encryptedText = Buffer.concat([
         cipher.update(text, 'utf8'),
-        cipher.final()
+        cipher.final(),
       ]);
 
       // Return IV and encrypted text as a single string
@@ -87,7 +84,7 @@ export class EncryptionService {
       // Decrypt the text
       const decryptedText = Buffer.concat([
         decipher.update(text),
-        decipher.final()
+        decipher.final(),
       ]);
 
       return decryptedText.toString('utf8');

@@ -32,7 +32,6 @@ import { LinkQueryToDashboardDto } from './dto/link-query-to-dashboard.dto';
 import { ExecuteQueryDto } from './dto/execute-query.dto';
 import { Response } from 'express';
 
-
 @Controller('query')
 @UseGuards(AuthGuard)
 @ApiBearerAuth()
@@ -92,12 +91,14 @@ export class QueryController {
     return await this.queryService.directRunQuery(userId, createQueryDto, save);
   }
 
-@Post('execute')
-@ApiOperation({summary: 'simply execute an sql query in the provided database'})
-async execute(@Body() executeQueryDto: ExecuteQueryDto, @Request() req){
-  const userId = req.user.id;
-  return await this.queryService.execute(executeQueryDto, userId)
-}
+  @Post('execute')
+  @ApiOperation({
+    summary: 'simply execute an sql query in the provided database',
+  })
+  async execute(@Body() executeQueryDto: ExecuteQueryDto, @Request() req) {
+    const userId = req.user.id;
+    return await this.queryService.execute(executeQueryDto, userId);
+  }
 
   @Post('link-to-dashboard')
   @ApiOperation({ summary: 'Link a query to a dashboard.' })
@@ -206,7 +207,9 @@ async execute(@Body() executeQueryDto: ExecuteQueryDto, @Request() req){
   }
 
   @Get('count-executed')
-  @ApiOperation({ summary: 'Get count of queries that have been executed by user.' })
+  @ApiOperation({
+    summary: 'Get count of queries that have been executed by user.',
+  })
   @ApiProperty({ type: Number })
   @ApiResponse({ type: Number })
   async getExecutedQueryCount(@Request() req) {
@@ -316,41 +319,49 @@ async execute(@Body() executeQueryDto: ExecuteQueryDto, @Request() req){
   }
 
   @Get('sample-dashboard/:databaseId')
-  @ApiOperation({summary: 'Generate a sample dashboard for new user'})
-  @ApiResponse({type: MessageDto})
-  async generateDashboard(@Param('databaseId') databaseId:number, @Request() req){
+  @ApiOperation({ summary: 'Generate a sample dashboard for new user' })
+  @ApiResponse({ type: MessageDto })
+  async generateDashboard(
+    @Param('databaseId') databaseId: number,
+    @Request() req,
+  ) {
     const userId = req.user.id;
-    const message = await this.queryService.generateDashboard(databaseId, userId);
-    return {message}
+    const message = await this.queryService.generateDashboard(
+      databaseId,
+      userId,
+    );
+    return { message };
   }
 
   @Get('download-json/:queryId')
-  @ApiOperation({summary: 'Download a qury output in json'})
+  @ApiOperation({ summary: 'Download a qury output in json' })
   async downloadQueryDataAsJson(
     @Param('queryId', ParseIntPipe) queryId: number,
     @Res() res: Response,
-    @Request() req
+    @Request() req,
   ) {
     const userId = req.user.id;
     const data = await this.queryService.getQueryDataAsJson(queryId, userId);
-    
+
     const filename = `query-${queryId}-data.json`;
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     return res.send(data);
   }
-  
-  @Get('download-csv/:queryId')
-  @ApiOperation({summary: 'Download a qury output in csv'})
 
+  @Get('download-csv/:queryId')
+  @ApiOperation({ summary: 'Download a qury output in csv' })
   async downloadQueryDataAsCsv(
     @Param('queryId', ParseIntPipe) queryId: number,
     @Res() res: Response,
-    @Request() req
+    @Request() req,
   ) {
     const userId = req.user.id;
-    const csvContent = await this.queryService.getQueryDataAsCsv(queryId, userId);
-    
+    const csvContent = await this.queryService.getQueryDataAsCsv(
+      queryId,
+      userId,
+    );
+
     const filename = `query-${queryId}-data.csv`;
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -358,12 +369,10 @@ async execute(@Body() executeQueryDto: ExecuteQueryDto, @Request() req){
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get a query using id.'})
+  @ApiOperation({ summary: 'Get a query using id.' })
   @ApiResponse({ type: QueryEntity })
-  async findOne(@Request() req, @Query('id') id: number){
+  async findOne(@Request() req, @Query('id') id: number) {
     const userId = req.user.id;
     return await this.queryService.findOne(id, userId);
   }
-
-  
 }
