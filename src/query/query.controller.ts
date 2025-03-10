@@ -337,7 +337,7 @@ async execute(@Body() executeQueryDto: ExecuteQueryDto, @Request() req){
     const filename = `query-${queryId}-data.json`;
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-    return res.send(JSON.stringify(data, null, 2));
+    return res.send(data);
   }
   
   @Get('download-csv/:queryId')

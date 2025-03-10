@@ -953,7 +953,7 @@ export class QueryService {
   async getQueryDataAsJson(queryId: number, userId: number) {
     try {
       const result = await this.queryRepo.query(
-        `SELECT data FROM queries WHERE id = $1 AND "userId" = $2`,
+        `SELECT * FROM queries WHERE id = $1 AND "userId" = $2`,
         [queryId, userId]
       );
       
