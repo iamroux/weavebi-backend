@@ -357,5 +357,13 @@ async execute(@Body() executeQueryDto: ExecuteQueryDto, @Request() req){
     return res.send(csvContent);
   }
 
+  @Get()
+  @ApiOperation({ summary: 'Get a query using id.'})
+  @ApiResponse({ type: QueryEntity })
+  async findOne(@Request() req, @Query('id') id: number){
+    const userId = req.user.id;
+    return await this.queryService.findOne(id, userId);
+  }
+
   
 }

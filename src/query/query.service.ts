@@ -1006,5 +1006,31 @@ export class QueryService {
       throw new InternalServerErrorException('Failed to generate CSV');
     }
   }
+
+  async findOne(id: number, userId: number) {
+    try {
+    const query = await this.queryRepo.findOne({
+      where: { id, userId },
+    });
+
+    if (!query) {
+      throw new NotFoundException('Query not found or unauthorized');
+    }
+
+    if(query.outputType!=='descriptive'){
+      query.data = JSON.parse(query.data)
+    }
+    return query;
+  }
+
+  catch(error){
+    if(error instanceof NotFoundException){throw error}
+    this.logger.error(`Failed to fetch query ${id}: ${error.message}`);
+    throw new InternalServerErrorException('Failed to fetch query');
+  }
+  
+  }
+
+
  
 }
