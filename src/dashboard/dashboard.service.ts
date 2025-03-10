@@ -302,7 +302,7 @@ export class DashboardService {
         );
   
         return {
-          ...query,
+          ...query, data: query.outputType === 'descriptive' ? query.data: JSON.parse(query.data), // parse JSON data
           position: position
             ? {
                 x: position.x,

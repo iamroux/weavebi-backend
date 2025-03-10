@@ -253,7 +253,7 @@ export class QueryService {
       }
 
       // Update and save query entity
-      queryEntity.data = finalData;
+      queryEntity.data = outputType === 'tabular' ? JSON.stringify(finalData) : finalData; // need to convert tabular data into json object.
       queryEntity.generatedSqlQuery = generatedSqlQuery;
       await this.queryRepo.save(queryEntity);
 
@@ -264,7 +264,7 @@ export class QueryService {
         query: queryEntity.query,
         outputType: queryEntity.outputType,
         generatedSqlQuery: queryEntity.generatedSqlQuery,
-        data: queryEntity.data,
+        data: queryEntity.outputType === 'descriptive' ? queryEntity.data : JSON.parse(queryEntity.data), // parse if outputType is not descriptive
         createdAt: queryEntity.createdAt,
         updatedAt: queryEntity.updatedAt,
       };
@@ -386,7 +386,7 @@ export class QueryService {
         query: queryEntity.query,
         outputType: queryEntity.outputType,
         generatedSqlQuery: queryEntity.generatedSqlQuery,
-        data: queryEntity.data,
+        data: queryEntity.outputType === 'descriptive' ? queryEntity.data : JSON.parse(queryEntity.data), // parse if outputType is not descriptive
         createdAt: queryEntity.createdAt,
         updatedAt: queryEntity.updatedAt,
       };
@@ -430,7 +430,7 @@ export class QueryService {
     )
 
     return {
-      "dataFromDatabase": dataFromDatabase
+      "Output": dataFromDatabase
     }
   }
   catch(error) {
