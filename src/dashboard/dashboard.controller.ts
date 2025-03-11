@@ -67,14 +67,30 @@ export class DashboardController {
     type: String,
     description: 'Search term for dashboard name',
   })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    type: String,
+    description: 'Sort by createdAt or updatedAt',
+    enum: ['createdAt', 'updatedAt']
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    type: String,
+    description: 'Sort order asc or desc',
+    enum: ['ASC', 'DESC']
+  })
   async findAll(
     @Request() req,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
     @Query('search') search: string = '',
+    @Query('sortBy') sortBy: string = 'createdAt',
+    @Query('sortOrder') sortOrder: 'ASC' | 'DESC' = 'DESC'
   ) {
     const userId = req.user.id;
-    return this.dashboardService.findAll(userId, page, limit, search);
+    return this.dashboardService.findAll(userId, page, limit, search, sortBy, sortOrder);
   }
 
   @Get('count')

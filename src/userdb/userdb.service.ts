@@ -547,7 +547,7 @@ export class UserdbService {
     }
   }
 
-  async findAll(userId: number, page: number, limit: number, search: string) {
+  async findAll(userId: number, page: number, limit: number, search: string, sortBy: string = 'createdAt', sortOrder: 'ASC' | 'DESC' = 'DESC') {
     try {
       const queryBuilder = this.userDbRepo
         .createQueryBuilder('userdb')
@@ -559,6 +559,12 @@ export class UserdbService {
           { search: `%${search}%` },
         );
       }
+
+      const validSortFields = ['createdAt', 'updatedAt'];
+      const validSortBy = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
+      const validSortOrder = sortOrder === 'ASC' ? 'ASC' : 'DESC';
+
+      queryBuilder.orderBy(`userdb.${validSortBy}`, validSortOrder);
 
       const [databases, count] = await queryBuilder
         .skip((page - 1) * limit)

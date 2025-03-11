@@ -82,15 +82,31 @@ export class UserdbController {
     type: String,
     description: 'Search term for name or hostname',
   })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    type: String,
+    description: 'sort by createdAt or updatedAt',
+    enum: ['createdAt', 'updatedAt'],
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    type: String,
+    description: 'sort order asc or desc',
+    enum: ['ASC', 'DESC'],
+  })
   @ApiResponse({ type: [CreateUserdbDto] })
   async findAll(
     @Request() req,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
     @Query('search') search: string = '',
+    @Query('sortBy') sortBy: string = 'createdAt',
+    @Query('sortOrder') sortOrder: 'ASC' | 'DESC' = 'DESC',
   ) {
     const userId = req.user.id;
-    return this.userdbService.findAll(userId, page, limit, search);
+    return this.userdbService.findAll(userId, page, limit, search, sortBy, sortOrder);
   }
 
   @Patch(':id')

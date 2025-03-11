@@ -98,6 +98,8 @@ export class DashboardService {
     page: number = 1,
     limit: number = 10,
     search: string = '',
+    sortBy: string = 'createdAt',
+    sortOrder: 'ASC' | 'DESC' = 'DESC',
   ) {
     try {
       const offset = (page - 1) * limit;
@@ -124,6 +126,12 @@ export class DashboardService {
           search: `%${search}%`,
         });
       }
+
+      const validSortFields = ['createdAt', 'updatedAt'];
+      const validSortBy = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
+      const validSortOrder = sortOrder === 'ASC' ? 'ASC' : 'DESC';
+
+      queryBuilder.orderBy(`dashboard.${validSortBy}`, validSortOrder);
 
       const [dashboards, count] = await queryBuilder
         .skip(offset)
