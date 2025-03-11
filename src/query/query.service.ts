@@ -19,6 +19,9 @@ import { DashboardEntity } from '../dashboard/entities/dashboard.entity';
 import { EncryptionService } from './encryption.service';
 import { ExecuteQueryDto } from './dto/execute-query.dto';
 import { DashboardService } from 'src/dashboard/dashboard.service';
+import { getSSLConfig, mapProviderToTypeORM } from 'src/common/database-utils';
+import { SSLMode } from 'src/userdb/entities/userdb.entity';
+
 
 // Global Constants
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
@@ -119,18 +122,26 @@ export class QueryService {
     database: string,
     port: number,
     provider: string,
+    sslMode: SSLMode = SSLMode.DISABLE
   ): Promise<any> {
     let dataSource: DataSource | null = null;
-
+    
     try {
+      // Map provider to TypeORM's expected type
+      const typeormProvider = mapProviderToTypeORM(
+        provider as 'mysql' | 'mariadb' | 'postgres' | 'mssql' | 'oracle'
+      );
+      
       dataSource = new DataSource({
-        type: provider as 'postgres' | 'mysql' | 'mssql' | 'oracle' | 'mariadb',
+        type: typeormProvider,
         host,
         port,
         username,
         password,
         database,
+        ssl: getSSLConfig(sslMode)
       });
+  
 
       await dataSource.initialize();
       return await dataSource.query(sqlQuery);

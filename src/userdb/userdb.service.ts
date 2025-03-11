@@ -17,6 +17,7 @@ import {
   TableForeignKey,
 } from 'typeorm';
 import { UpdateUserdbDto } from './dto/update-userdb.dto';
+import { getSSLConfig, mapProviderToTypeORM } from 'src/common/database-utils';
 
 // Additional interfaces for schema
 interface RelationshipMap {
@@ -73,39 +74,7 @@ export class UserdbService {
     private userDbRepo: Repository<UserdbEntity>,
   ) {}
 
-// helper functions here ...
-// ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-// helper function to get ssl config 
-private getSSLConfig(sslMode: SSLMode) {
-    switch (sslMode) {
-      case SSLMode.DISABLE:
-        return false; 
-      case SSLMode.PREFER:
-        return { rejectUnauthorized: false }; 
-      case SSLMode.REQUIRE:
-        return { rejectUnauthorized: true }; 
-      default:
-        return false; 
-    }
-  }
-// helper function to map provider to typeORM
-  private mapProviderToTypeORM(provider: 'mysql' | 'mariadb' | 'postgres' | 'mssql' | 'oracle'): any {
-    switch (provider) {
-      case 'mysql':
-        return 'mysql';
-      case 'mariadb':
-        return 'mariadb';
-      case 'postgres':
-        return 'postgres';
-      case 'mssql':
-        return 'mssql';
-      case 'oracle':
-        return 'oracle';
-      default:
-        throw new BadRequestException('Invalid database provider');
-    }
-    
-  }
+
 
   // Optimized schema extraction
   async getSchema(
@@ -119,7 +88,7 @@ private getSSLConfig(sslMode: SSLMode) {
       
   ): Promise<SchemaResult> {
     try {
-      const typeormProvider = this.mapProviderToTypeORM(provider);
+      const typeormProvider = mapProviderToTypeORM(provider);
       const options: DataSourceOptions = {
         type: typeormProvider,
         host,
@@ -127,7 +96,7 @@ private getSSLConfig(sslMode: SSLMode) {
         username,
         password,
         database,
-        ssl: this.getSSLConfig(ssl),
+        ssl: getSSLConfig(ssl),
 
       }
       const tempDataSource = new DataSource(options);
@@ -622,7 +591,7 @@ private getSSLConfig(sslMode: SSLMode) {
   async test(userId: number, createUserdbDto: CreateUserdbDto) {
     try {
       // Convert provider to TypeORM's expected type
-      const typeormProvider = this.mapProviderToTypeORM(
+      const typeormProvider = mapProviderToTypeORM(
         createUserdbDto.provider as 'mysql' | 'mariadb' | 'postgres' | 'mssql' | 'oracle'
       );
       
@@ -633,7 +602,7 @@ private getSSLConfig(sslMode: SSLMode) {
         username: createUserdbDto.username,
         password: createUserdbDto.password,
         database: createUserdbDto.name,
-        ssl: this.getSSLConfig(createUserdbDto.ssl || SSLMode.DISABLE)
+        ssl: getSSLConfig(createUserdbDto.ssl || SSLMode.DISABLE)
       });
       
       try {
