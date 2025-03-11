@@ -7,9 +7,10 @@ import {
 } from '@nestjs/common';
 import { CreateUserdbDto } from './dto/create-userdb.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { UserdbEntity } from './entities/userdb.entity';
+import { SSLMode, UserdbEntity } from './entities/userdb.entity';
 import {
   DataSource,
+  DataSourceOptions,
   Repository,
   Table,
   TableColumn,
@@ -72,6 +73,40 @@ export class UserdbService {
     private userDbRepo: Repository<UserdbEntity>,
   ) {}
 
+// helper functions here ...
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+// helper function to get ssl config 
+private getSSLConfig(sslMode: SSLMode) {
+    switch (sslMode) {
+      case SSLMode.DISABLE:
+        return false; 
+      case SSLMode.PREFER:
+        return { rejectUnauthorized: false }; 
+      case SSLMode.REQUIRE:
+        return { rejectUnauthorized: true }; 
+      default:
+        return false; 
+    }
+  }
+// helper function to map provider to typeORM
+  private mapProviderToTypeORM(provider: 'mysql' | 'mariadb' | 'postgres' | 'mssql' | 'oracle'): any {
+    switch (provider) {
+      case 'mysql':
+        return 'mysql';
+      case 'mariadb':
+        return 'mariadb';
+      case 'postgres':
+        return 'postgres';
+      case 'mssql':
+        return 'mssql';
+      case 'oracle':
+        return 'oracle';
+      default:
+        throw new BadRequestException('Invalid database provider');
+    }
+    
+  }
+
   // Optimized schema extraction
   async getSchema(
     provider: 'mysql' | 'mariadb' | 'postgres' | 'mssql' | 'oracle',
@@ -80,16 +115,23 @@ export class UserdbService {
     username: string,
     password: string,
     database: string,
+    ssl: SSLMode = SSLMode.DISABLE
+      
   ): Promise<SchemaResult> {
     try {
-      const tempDataSource = new DataSource({
-        type: provider,
+      const typeormProvider = this.mapProviderToTypeORM(provider);
+      const options: DataSourceOptions = {
+        type: typeormProvider,
         host,
         port,
         username,
         password,
         database,
-      });
+        ssl: this.getSSLConfig(ssl),
+
+      }
+      const tempDataSource = new DataSource(options);
+   
 
       try {
         await tempDataSource.initialize();
@@ -155,8 +197,10 @@ export class UserdbService {
       } finally {
         // Ensure resources are released
         try {
-          await queryRunner.release();
-          await tempDataSource.destroy();
+          if(queryRunner)
+          {await queryRunner.release();}
+          if(tempDataSource && tempDataSource.isInitialized){
+          await tempDataSource.destroy();}
         } catch (cleanupError) {
           this.logger.warn(`Resource cleanup error: ${cleanupError.message}`);
         }
@@ -482,6 +526,7 @@ export class UserdbService {
         createUserdbDto.username,
         createUserdbDto.password,
         createUserdbDto.name,
+        createUserdbDto.ssl
       );
 
       if (!schema || typeof schema !== 'object') {
@@ -561,6 +606,7 @@ export class UserdbService {
           'userdb.createdAt',
           'userdb.updatedAt',
           'userdb.userId',
+          'userdb.ssl',
         ])
         .getManyAndCount();
 
@@ -575,20 +621,21 @@ export class UserdbService {
 
   async test(userId: number, createUserdbDto: CreateUserdbDto) {
     try {
+      // Convert provider to TypeORM's expected type
+      const typeormProvider = this.mapProviderToTypeORM(
+        createUserdbDto.provider as 'mysql' | 'mariadb' | 'postgres' | 'mssql' | 'oracle'
+      );
+      
       const tempDataSource = new DataSource({
-        type: createUserdbDto.provider as
-          | 'mysql'
-          | 'mariadb'
-          | 'postgres'
-          | 'mssql'
-          | 'oracle',
+        type: typeormProvider,
         host: createUserdbDto.host,
         port: createUserdbDto.port,
         username: createUserdbDto.username,
         password: createUserdbDto.password,
         database: createUserdbDto.name,
+        ssl: this.getSSLConfig(createUserdbDto.ssl || SSLMode.DISABLE)
       });
-
+      
       try {
         await tempDataSource.initialize();
       } catch (initError) {
@@ -688,6 +735,7 @@ export class UserdbService {
         updateUserdbDto.username || '',
         updateUserdbDto.password || '',
         updateUserdbDto.name || '',
+        updateUserdbDto.ssl || SSLMode.DISABLE
       );
 
       // Update the database entry with the new schema and other provided details
@@ -728,6 +776,7 @@ export class UserdbService {
           'userId',
           'connectionName',
           'description',
+          'ssl'
         ],
       });
 

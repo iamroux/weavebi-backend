@@ -1,6 +1,8 @@
 import { Optional } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
+import { SSLMode } from '../entities/userdb.entity';
+
 
 export class CreateUserdbDto {
   @ApiProperty()
@@ -34,4 +36,10 @@ export class CreateUserdbDto {
   @ApiProperty()
   @IsNotEmpty()
   port: number;
+
+  @ApiProperty({ enum: SSLMode, default: SSLMode.DISABLE })
+  @IsOptional()
+  @IsEnum(SSLMode)
+  ssl?: SSLMode;
+  
 }
