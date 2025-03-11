@@ -5,35 +5,35 @@ import { SSLMode } from '../entities/userdb.entity';
 
 
 export class CreateUserdbDto {
-  @ApiProperty()
+  @ApiProperty({example: 'employees'})
   @Optional()
   connectionName: string;
 
-  @ApiProperty()
+  @ApiProperty({example: 'This is my test employees database'})
   @Optional()
   description: string;
 
-  @ApiProperty()
+  @ApiProperty({example: 'postgres'})
   @IsNotEmpty()
   provider: string;
 
-  @ApiProperty()
+  @ApiProperty({example: 'employees'})
   @IsNotEmpty()
   name: string;
 
-  @ApiProperty()
+  @ApiProperty({example: 'postgres'})
   @IsNotEmpty()
   username: string;
 
-  @ApiProperty()
+  @ApiProperty({example: 'secret'})
   @IsNotEmpty()
   password: string;
 
-  @ApiProperty()
+  @ApiProperty({example: 'localhost'})
   @IsNotEmpty()
   host: string;
 
-  @ApiProperty()
+  @ApiProperty({example: 5432})
   @IsNotEmpty()
   port: number;
 
