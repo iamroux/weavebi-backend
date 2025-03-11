@@ -652,22 +652,32 @@ export class QueryService {
     search: string = '',
   ) {
     try {
-      const queryBuilder = this.queryRepo.createQueryBuilder('query');
-
+      const queryBuilder = this.queryRepo
+        .createQueryBuilder('query')
+        .select([
+          'query.id',
+          'query.name',
+          'query.query',
+          'query.outputType',
+          'query.createdAt',
+          'query.updatedAt',
+          'query.userId',
+          'query.databaseId',
+        ]);
+        
       queryBuilder.where('query.databaseId = :databaseId', { databaseId });
       queryBuilder.andWhere('query.userId = :userId', { userId });
-
+      
       if (search) {
         queryBuilder.andWhere(
           '(query.name ILIKE :search OR query.query ILIKE :search)',
           { search: `%${search}%` },
         );
       }
-
+      
       queryBuilder.skip((page - 1) * limit).take(limit);
-
       const [queries, count] = await queryBuilder.getManyAndCount();
-
+      
       return {
         queries,
         count,
