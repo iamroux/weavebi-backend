@@ -13,9 +13,15 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { createCipheriv, randomBytes, scrypt } from 'crypto';
-import { promisify } from 'util';
 import { EncryptionService } from 'src/query/encryption.service';
+
+
+export enum SSLMode {
+  DISABLE = 'DISABLE',
+  PREFER = 'PREFER',
+  REQUIRE = 'REQUIRE',
+}
+
 
 @Entity('databases')
 export class UserdbEntity {
@@ -56,6 +62,13 @@ export class UserdbEntity {
 
   @Column()
   userId: number;
+
+  @Column({
+    type: 'enum',
+    enum: SSLMode,
+    default: SSLMode.DISABLE,
+  })
+  ssl: SSLMode;
 
   @ManyToOne(() => UserEntity, (user) => user.databases, {
     onDelete: 'CASCADE',
