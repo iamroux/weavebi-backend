@@ -71,7 +71,7 @@ export class UserdbService {
 
   constructor(
     @InjectRepository(UserdbEntity)
-    private userDbRepo: Repository<UserdbEntity>,
+    private readonly userDbRepo: Repository<UserdbEntity>,
   ) {}
 
 

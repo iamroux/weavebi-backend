@@ -14,28 +14,31 @@ import * as argon2 from 'argon2';
 import * as nodemailer from 'nodemailer';
 import Redis from 'ioredis';
 import { Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
-  private redisClient: Redis;
-  private mailer;
+  private readonly redisClient: Redis;
+  private readonly mailer;
 
   constructor(
     @InjectRepository(UserEntity)
-    private userRepo: Repository<UserEntity>,
-    private jwtService: JwtService,
+    private readonly userRepo: Repository<UserEntity>,
+    private readonly jwtService: JwtService,
+    private readonly configService:ConfigService,
   ) {
     this.redisClient = new Redis({
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
+      host: configService.get<string>('redis.host'),
+      port: configService.get<number>('redis.port')
+      
     });
 
     this.mailer = nodemailer.createTransport({
       service: 'Gmail',
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
+        user: configService.get<string>('mail.user'),
+        pass: configService.get<string>('mail.pass'),
       },
     });
   }

@@ -21,25 +21,28 @@ import { ExecuteQueryDto } from './dto/execute-query.dto';
 import { DashboardService } from 'src/dashboard/dashboard.service';
 import { getSSLConfig, mapProviderToTypeORM } from 'src/common/database-utils';
 import { SSLMode } from 'src/userdb/entities/userdb.entity';
+import { ConfigService } from '@nestjs/config';
 
-
-// Global Constants
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
-const OPENAI_TEMPERATURE = parseFloat(process.env.OPENAI_TEMPERATURE || '0.0');
-
-// now i am become death
 
 @Injectable()
 export class QueryService {
   private readonly logger = new Logger(QueryService.name);
+
+  private readonly OPENAI_API_KEY: string;
+  private readonly OPENAI_MODEL: string;
+  private readonly OPENAI_TEMPERATURE: number;
 
   constructor(
     @InjectRepository(QueryEntity)
     private readonly queryRepo: Repository<QueryEntity>,
     private readonly encryptionService: EncryptionService,
     private readonly dashboardService: DashboardService,
-  ) {}
+    private readonly configService: ConfigService
+  ) {
+    this.OPENAI_API_KEY = this.configService.get<string>('llm.apiKey') as string;
+    this.OPENAI_MODEL = this.configService.get<string>('llm.model') as string;
+    this.OPENAI_TEMPERATURE = this.configService.get<number>('llm.temperature') as number;
+  }
 
   // Helper method to generate SQL query using OpenAI
   private async generateSqlQuery(
@@ -49,7 +52,7 @@ export class QueryService {
     provider: string,
     outputType?: string,
   ): Promise<string> {
-    const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+    const openai = new OpenAI({ apiKey: this.OPENAI_API_KEY });
 
     let prompt = `
       Schema: ${schema}
@@ -62,8 +65,8 @@ export class QueryService {
 
     try {
       const response = await openai.chat.completions.create({
-        model: OPENAI_MODEL,
-        temperature: OPENAI_TEMPERATURE,
+        model: this.OPENAI_MODEL,
+        temperature: this.OPENAI_TEMPERATURE,
         messages: [
           { role: 'system', content: QueryPrompts.primaryPrompt },
           { role: 'user', content: prompt },
@@ -164,7 +167,7 @@ export class QueryService {
     dataFromDatabase: any,
     outputType: string,
   ): Promise<string> {
-    const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+    const openai = new OpenAI({ apiKey: this.OPENAI_API_KEY });
     let prompt = `
         Original User Query: ${query}
         Generated SQL Query: ${generatedSqlQuery}
@@ -180,8 +183,8 @@ export class QueryService {
         : QueryPrompts.chartJsFormatterPrompt;
 
     const response = await openai.chat.completions.create({
-      model: OPENAI_MODEL,
-      temperature: OPENAI_TEMPERATURE,
+      model: this.OPENAI_MODEL,
+      temperature: this.OPENAI_TEMPERATURE,
       messages: [
         { role: 'system', content: systemContent },
         { role: 'user', content: prompt },
@@ -814,14 +817,14 @@ export class QueryService {
 
       const schema = schemaQuery?.schema;
       const openai = new OpenAI({
-        apiKey: OPENAI_API_KEY,
+        apiKey: this.OPENAI_API_KEY,
       });
       const prompt = `
         Schema: ${schema}`;
 
       const response = await openai.chat.completions.create({
-        model: OPENAI_MODEL,
-        temperature: OPENAI_TEMPERATURE,
+        model: this.OPENAI_MODEL,
+        temperature: this.OPENAI_TEMPERATURE,
         messages: [
           { role: 'system', content: QueryPrompts.suggestedQueriesPrompt },
           { role: 'user', content: prompt },
@@ -887,7 +890,7 @@ export class QueryService {
 
       const { query: userQuery, generatedSqlQuery, outputType, data } = query;
       const openai = new OpenAI({
-        apiKey: OPENAI_API_KEY,
+        apiKey: this.OPENAI_API_KEY,
       });
 
       let prompt = `
@@ -905,8 +908,8 @@ export class QueryService {
       }
 
       const response = await openai.chat.completions.create({
-        model: OPENAI_MODEL,
-        temperature: OPENAI_TEMPERATURE,
+        model: this.OPENAI_MODEL,
+        temperature: this.OPENAI_TEMPERATURE,
         messages: [
           { role: 'system', content: QueryPrompts.insightsPrompt },
           { role: 'user', content: prompt },
@@ -945,14 +948,14 @@ export class QueryService {
 
       const schema = schemaQuery[0].schema;
       const openai = new OpenAI({
-        apiKey: OPENAI_API_KEY,
+        apiKey: this.OPENAI_API_KEY,
       });
       const prompt = `
         Database Schema: ${schema}`;
 
       const response = await openai.chat.completions.create({
-        model: OPENAI_MODEL,
-        temperature: OPENAI_TEMPERATURE,
+        model: this.OPENAI_MODEL,
+        temperature: this.OPENAI_TEMPERATURE,
         messages: [
           { role: 'system', content: QueryPrompts.sampleDashboardPrompt },
           { role: 'user', content: prompt },

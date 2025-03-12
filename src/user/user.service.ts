@@ -15,7 +15,7 @@ export class UserService {
   private readonly logger = new Logger(UserService.name);
   constructor(
     @InjectRepository(UserEntity)
-    private userRepo: Repository<UserEntity>,
+    private readonly userRepo: Repository<UserEntity>,
   ) {}
 
   async findOne(userId: number): Promise<UserDto> {

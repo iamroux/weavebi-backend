@@ -8,6 +8,12 @@ import { DatabaseModule } from './core/database/database.module';
 import { UserdbModule } from './userdb/userdb.module';
 import { QueryModule } from './query/query.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import llmConfig from './config/llm.config';
+import appConfig from './config/app.config';
+import encryptionConfig from './config/encryption.config';
+import jwtConfig from './config/jwt.config';
+import redisConfig from './config/redis.config';
+import mailConfig from './config/mail.config';
 
 @Module({
   imports: [
@@ -16,6 +22,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     AuthModule,
     ConfigModule.forRoot({
       isGlobal: true,
+      load: [llmConfig, appConfig, encryptionConfig, jwtConfig, redisConfig, mailConfig]
     }),
     UserdbModule,
     QueryModule,

@@ -23,7 +23,7 @@ export class DashboardService {
 
   constructor(
     @InjectRepository(DashboardEntity)
-    private dashboardRepo: Repository<DashboardEntity>,
+    private readonly dashboardRepo: Repository<DashboardEntity>,
   ) {}
 
   async create(userId: number, createDashboardDto: CreateDashboardDto) {

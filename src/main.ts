@@ -2,21 +2,23 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     cors: true,
     bodyParser: true,
   });
+  const configService = app.get(ConfigService);
 
   app.useGlobalPipes(new ValidationPipe());
 
   const config = new DocumentBuilder()
-    .setTitle(process.env.API_TITLE ?? 'WeaveBI')
+    .setTitle(configService.get<string>('app.title') as string)
     .setDescription(
-      process.env.API_DESCRIPTION ?? 'Data visualization dashboards app',
+      configService.get<string>('app.description') as string,
     )
-    .setVersion(process.env.API_VERSION ?? '1.0.0')
+    .setVersion(configService.get<string>('app.version') as string)
     .addBearerAuth()
     .build();
 
@@ -27,6 +29,6 @@ async function bootstrap() {
     },
   });
 
-  await app.listen(process.env.APP_PORT ?? 3000);
+  await app.listen(configService.get<string>('app.port') as string);
 }
 bootstrap();

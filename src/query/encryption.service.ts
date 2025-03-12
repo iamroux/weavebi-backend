@@ -1,9 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { createCipheriv, createDecipheriv, randomBytes, scrypt } from 'crypto';
 import { promisify } from 'util';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class EncryptionService {
+  constructor(
+    private readonly configService: ConfigService
+  ) {}
+
   // Generate a cryptographically secure random salt
   generateSalt(length = 32): string {
     return randomBytes(length).toString('base64');
@@ -16,8 +21,8 @@ export class EncryptionService {
 
   // Private method to get encryption configuration
   private getEncryptionConfig(): { password: string; salt: string } {
-    const password = process.env.ENCRYPTION_PASSWORD;
-    const salt = process.env.ENCRYPTION_SALT;
+    const password = this.configService.get<string>('encryption.password');
+    const salt = this.configService.get<string>('encryption.salt');
 
     if (!password || !salt) {
       throw new Error(
