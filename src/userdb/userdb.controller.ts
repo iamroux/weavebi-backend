@@ -58,8 +58,7 @@ export class UserdbController {
   @ApiOperation({ summary: 'Get count of database connections' })
   async getCount(@Request() req) {
     const userId = req.user.id;
-    const count = await this.userdbService.getCount(userId);
-    return count;
+    return  await this.userdbService.getCount(userId);
   }
 
   @Get()

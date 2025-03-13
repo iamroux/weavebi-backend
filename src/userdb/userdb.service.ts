@@ -678,19 +678,36 @@ export class UserdbService {
     }
   }
 
-  async getCount(userId: number): Promise<{ count: number }> {
+  async getCount(userId: number) {
     try {
-      const count = await this.userDbRepo.count({ where: { userId } });
-      return { count };
+      const result = await this.userDbRepo.query(`
+        SELECT
+          COUNT(d.id) AS "totalCount",
+          SUM(CASE WHEN q."databaseId" IS NOT NULL THEN 1 ELSE 0 END) AS "activeCount",
+          SUM(CASE WHEN q."databaseId" IS NULL THEN 1 ELSE 0 END) AS "inactiveCount"
+        FROM databases d
+        LEFT JOIN queries q ON d.id = q."databaseId"
+        WHERE d."userId" = $1
+      `, [userId]);
+  
+      if (result.length === 0) {
+        return { totalCount: 0, activeCount: 0, inactiveCount: 0 };
+      }
+  
+      // Ensure null counts return zero
+      const { totalCount = 0, activeCount = 0, inactiveCount = 0 } = result[0];
+      return {
+        totalCount: parseInt(totalCount, 10),
+        activeCount: parseInt(activeCount, 10),
+        inactiveCount: parseInt(inactiveCount, 10),
+      };
     } catch (error) {
-      this.logger.error(
-        `Failed to retrieve database count for user ${userId}: ${error.message}`,
-      );
-      throw new InternalServerErrorException(
-        'Failed to retrieve database count',
-      );
+      this.logger.error(`Failed to retrieve database count for user ${userId}: ${error.message}`);
+      throw new InternalServerErrorException('Failed to retrieve database count');
     }
   }
+  
+  
 
   async update(userId: number, id: number, updateUserdbDto: UpdateUserdbDto) {
     try {
