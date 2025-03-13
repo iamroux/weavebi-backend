@@ -146,6 +146,8 @@ export class UserdbService {
           provider,
         );
 
+        this.logger.log(`Schema for database ${database} generated`)
+
         return {
           metadata: {
             databaseType: provider,
@@ -510,6 +512,7 @@ export class UserdbService {
       });
 
       await this.userDbRepo.save(newDatabase);
+      this.logger.log(`Database ${newDatabase.id} saved`)
       return 'Database added successfully';
     } catch (error) {
       this.logger.error(
@@ -720,6 +723,7 @@ export class UserdbService {
       });
 
       await this.userDbRepo.save(updatedDatabase);
+      this.logger.log(`Database ${id} for user ${userId} updated`)
       return 'Database updated successfully';
     } catch (error) {
       if (error instanceof BadRequestException) {
@@ -785,6 +789,7 @@ export class UserdbService {
       }
 
       await this.userDbRepo.remove(database);
+      this.logger.log(`Database ${id} for user ${userId} deleted`)
       return 'Database deleted successfully';
     } catch (error) {
       this.logger.error(

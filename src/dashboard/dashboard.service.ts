@@ -65,6 +65,7 @@ export class DashboardService {
         });
         await this.dashboardRepo.manager.save(TaggableEntity, taggable);
       }
+      this.logger.log(`Dashboard ${dashboard.id} created for user ${userId}`)
 
       return { message: 'Dashboard created successfully' };
     } catch (error) {
@@ -214,6 +215,7 @@ export class DashboardService {
       );
 
       await this.dashboardRepo.save(updatedDashboard);
+      this.logger.log(`Dashobard ${updatedDashboard.id} updated for user ${userId}`)
       return { message: 'Dashboard updated successfully', updatedDashboard };
     } catch (error) {
       if (error instanceof BadRequestException) {
@@ -267,6 +269,8 @@ export class DashboardService {
         })
         .execute();
 
+        this.logger.log(`Layout for query:  ${queryId} dashboard ${dashboardId} updated`)
+
       return 'Position created successfully';
     } catch (error) {
       throw new InternalServerErrorException(
@@ -286,6 +290,7 @@ export class DashboardService {
       if (result.affected === 0) {
         throw new BadRequestException('Dashboard not found');
       }
+      this.logger.log(`Dashboard ${id} deleted  for user ${userId}`)
 
       return 'Dashboard deleted successfully';
     } catch (error) {

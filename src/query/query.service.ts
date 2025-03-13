@@ -147,6 +147,7 @@ export class QueryService {
   
 
       await dataSource.initialize();
+      this.logger.log('SQL query executed')
       return await dataSource.query(sqlQuery);
     } catch (error) {
       this.logger.error(`Failed to execute query: ${error.message}`);
@@ -277,6 +278,8 @@ export class QueryService {
       queryEntity.generatedSqlQuery = generatedSqlQuery;
       await this.queryRepo.save(queryEntity);
 
+      this.logger.log(`Output for Query ${queryId} saved`)
+
       // Return cleaned response
       return {
         id: queryEntity.id,
@@ -406,7 +409,7 @@ export class QueryService {
 
       if (save) {
         await this.queryRepo.save(queryEntity);
-        this.logger.log('query saved');
+        this.logger.log(`Query ${queryEntity.id} saved`);
       }
 
       const result = {
@@ -502,6 +505,7 @@ export class QueryService {
         userId: userId,
       });
       await this.queryRepo.save(query);
+      this.logger.log(`Query ${query.id} for user ${userId} saved`)
 
       return query;
     } catch (error) {
@@ -536,6 +540,7 @@ export class QueryService {
       query.outputType = createQueryDto.outputType;
       query.databaseId = createQueryDto.databaseId;
       await this.queryRepo.save(query);
+      this.logger.log(`Query ${queryId} updated for user ${userId}`)
 
       return 'Query updated successfully';
     } catch (error) {
@@ -569,6 +574,7 @@ export class QueryService {
 
       query.dashboards.push(dashboard);
       await this.queryRepo.save(query);
+      this.logger.log(`Query ${queryId} linked to dashboard ${dashboardId} for user ${userId}`)
 
       return 'Query linked to dashboard successfully';
     } catch (error) {
@@ -602,7 +608,7 @@ export class QueryService {
 
       query.dashboards = query.dashboards.filter((d) => d.id !== dashboardId);
       await this.queryRepo.save(query);
-
+      this.logger.log(`Query ${queryId} remove dfrom dashboard ${dashboardId} for user ${userId}`)
       return 'Query unlinked from dashboard successfully';
     } catch (error) {
       if (error instanceof NotFoundException) {
@@ -794,6 +800,7 @@ export class QueryService {
         throw new ForbiddenException('Unauthorized to delete this query');
       }
       await this.queryRepo.delete(id);
+      this.logger.log(`Query ${id} deleted for user ${userId}`)
       return 'Query and related dashboard entries deleted successfully';
     } catch (error) {
       if (error instanceof ForbiddenException) {
@@ -832,6 +839,7 @@ export class QueryService {
       });
       const generatedQueries =
         response.choices[0].message.content?.trim() ?? '';
+        this.logger.log(`Queries for database ${databaseId} generated`)
       return generatedQueries;
     } catch (error) {
       if (
@@ -917,6 +925,7 @@ export class QueryService {
       });
 
       const insights = response.choices[0].message.content?.trim() ?? '';
+      this.logger.log(`Insights on query ${queryId} for user ${userId} generated`)
       return { insights: insights };
     } catch (error) {
       if (
@@ -997,6 +1006,7 @@ export class QueryService {
 
       // step 5: parallel execute all queries
       await Promise.all(ids.map((id) => this.runQuery(id, userId)));
+      this.logger.log(`Generatd sample dashboard for user ${userId}`)
       return 'Sample dashboard generated successfully';
     } catch (error) {
       if (
@@ -1041,6 +1051,7 @@ export class QueryService {
       }
 
       // Try to directly return the data if it's already in proper format
+      this.logger.log(`Generated JSON data for qurey ${queryId}`)
       return rawData;
     } catch (error) {
       if (error instanceof NotFoundException) {
@@ -1069,6 +1080,8 @@ export class QueryService {
 
       let converter = require('json-2-csv');
       const csv = await converter.json2csv(parsedData);
+      this.logger.log(`Generated CSV data for qurey ${queryId}`)
+
       return csv;
     } catch (error) {
       if (error instanceof NotFoundException) {
