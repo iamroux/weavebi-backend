@@ -41,7 +41,7 @@ export class QueryService {
   ) {
     this.OPENAI_API_KEY = this.configService.get<string>('llm.apiKey') as string;
     this.OPENAI_MODEL = this.configService.get<string>('llm.model') as string;
-    this.OPENAI_TEMPERATURE = this.configService.get<number>('llm.temperature') as number;
+    this.OPENAI_TEMPERATURE = Number(this.configService.get<number>('llm.temperature'));
   }
 
   // Helper method to generate SQL query using OpenAI
