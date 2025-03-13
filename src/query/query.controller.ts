@@ -156,12 +156,14 @@ export class QueryController {
     required: false,
     type: Number,
     description: 'Page number for pagination',
+    default: 1,
   })
   @ApiQuery({
     name: 'limit',
     required: false,
     type: Number,
     description: 'Number of items per page',
+    default: 10
   })
   @ApiQuery({
     name: 'search',
@@ -226,12 +228,14 @@ export class QueryController {
     required: false,
     type: Number,
     description: 'Page number for pagination',
+    default: 1
   })
   @ApiQuery({
     name: 'limit',
     required: false,
     type: Number,
     description: 'Number of items per page',
+    default: 10
   })
   @ApiQuery({
     name: 'search',
