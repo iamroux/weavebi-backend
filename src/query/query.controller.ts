@@ -61,7 +61,7 @@ export class QueryController {
     return { message };
   }
 
-  @Get('run:id')
+  @Get('run/:id')
   @ApiOperation({ summary: 'Run an existant query and save output.' })
   @ApiProperty({ type: MessageDto })
   @ApiResponse({ type: QueryEntity })
@@ -137,7 +137,7 @@ export class QueryController {
     return { message };
   }
 
-  @Get('sync:id')
+  @Get('sync/:id')
   @ApiOperation({ summary: 'Parallel exeute all queries in a dashboard..' })
   @ApiProperty({ type: MessageDto })
   @ApiResponse({ type: QueryEntity })
