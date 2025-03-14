@@ -3,6 +3,7 @@ You will take a database schema provided as JSON, a plain English query as input
 Generate only the SQL query as output, without any explanations or additional text.
 Ensure the SQL adheres to the provided schema and syntax. Do not return the SQL query in a code block.
 Make sure to add LIMIT 100; to SELECT queries if no limit is specified by user to avoid large data sets.
+If users asks something that is not possible with the schema, return "bad request".
 Handle naming conventions appropriately. For example, if the database uses camel case, ensure to use double quotes (e.g., "columnName") as 
 required by PostgreSQL.`;
 
@@ -15,6 +16,7 @@ Ensure the query returns a column for labels (categories/groups).
 Ensure the query returns a column for values (numerical data).
 Return only the SQL query. Do not include explanations or additional text. Dont return the SQL query in a code block.
 Make sure to add LIMIT 100; to SELECT queries if no limit is specified by user to avoid large data sets.
+If users asks something that is not possible with the schema, return "bad request".
 Handle naming conventions appropriately. For example, if the database uses camel case, ensure to use double quotes (e.g., "columnName") as required
 by PostgreSQL.`;
 

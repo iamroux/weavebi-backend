@@ -76,6 +76,11 @@ export class QueryService {
       const cleanResponse = response.choices[0].message.content?.trim() ?? '';
       this.logger.debug(`Generated SQL query: ${cleanResponse}`);
 
+      if(cleanResponse.includes('bad request')) {
+        this.logger.warn('Asked user query didnt make any sense to LLM. Query execution blocked');
+        return `SELECT 'Invalid query' as message;`;
+      }
+
       // Security check for DML operations (nakli guardrails but works)
       const dmlKeywords = [
         'INSERT',
@@ -112,7 +117,7 @@ export class QueryService {
         );
       }
       this.logger.error('Error generating SQL query:', error);
-      throw new InternalServerErrorException('Failed to generate SQL query.');
+      throw new BadRequestException('Failed to generate SQL query.');
     }
   }
 
@@ -151,7 +156,7 @@ export class QueryService {
       return await dataSource.query(sqlQuery);
     } catch (error) {
       this.logger.error(`Failed to execute query: ${error.message}`);
-      throw new InternalServerErrorException(
+      throw new BadRequestException(
         `Failed to execute query: ${error.message}`,
       );
     } finally {
@@ -298,6 +303,7 @@ export class QueryService {
       if (error instanceof NotFoundException) {
         throw error;
       }
+      if(error instanceof BadRequestException){throw error}
       if (error instanceof HttpException) {
         throw error;
       }
@@ -418,10 +424,10 @@ export class QueryService {
         query: queryEntity.query,
         outputType: queryEntity.outputType,
         generatedSqlQuery: queryEntity.generatedSqlQuery,
-        data:
-          queryEntity.outputType === 'descriptive'
-            ? queryEntity.data
-            : JSON.parse(queryEntity.data), // parse if outputType is not descriptive
+        data: queryEntity.data,
+          // queryEntity.outputType === 'descriptive'
+          //   ? queryEntity.data
+          //   : JSON.parse(queryEntity.data), // parse if outputType is not descriptive
         createdAt: queryEntity.createdAt,
         updatedAt: queryEntity.updatedAt,
       };

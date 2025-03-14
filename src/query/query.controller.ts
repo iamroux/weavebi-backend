@@ -338,7 +338,7 @@ export class QueryController {
   }
 
   @Get('download-json/:queryId')
-  @ApiOperation({ summary: 'Download a qury output in json' })
+  @ApiOperation({ summary: 'Download a qury output in json (for graphical data only' })
   async downloadQueryDataAsJson(
     @Param('queryId', ParseIntPipe) queryId: number,
     @Res() res: Response,
@@ -354,7 +354,7 @@ export class QueryController {
   }
 
   @Get('download-csv/:queryId')
-  @ApiOperation({ summary: 'Download a qury output in csv' })
+  @ApiOperation({ summary: 'Download a qury output in csv (for tabular data only)' })
   async downloadQueryDataAsCsv(
     @Param('queryId', ParseIntPipe) queryId: number,
     @Res() res: Response,
