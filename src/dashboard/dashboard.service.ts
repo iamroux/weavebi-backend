@@ -282,7 +282,7 @@ export class DashboardService {
   async remove(userId: number, id: number) {
     try {
       await this.dashboardRepo.query(
-        `DELETE FROM taggable WHERE entityId = $1 AND entityType = 'dashboard'`,
+        `DELETE FROM taggable WHERE "entityId" = $1 AND "entityType" = 'dashboard'`,
         [id],
       );
       const result = await this.dashboardRepo.delete(id);
