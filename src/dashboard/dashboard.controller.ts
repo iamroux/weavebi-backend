@@ -11,6 +11,8 @@ import {
   Req,
   Query,
   Put,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
 import { CreateDashboardDto } from './dto/create-dashboard.dto';
@@ -83,16 +85,24 @@ export class DashboardController {
     description: 'Sort order asc or desc',
     enum: ['ASC', 'DESC']
   })
+  @ApiQuery({
+    name: 'isPinned',
+    required: false,
+    type: Boolean,
+    description: 'Filter by pinned dashboards',
+    default: false
+  })
   async findAll(
     @Request() req,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
     @Query('search') search: string = '',
     @Query('sortBy') sortBy: string = 'createdAt',
-    @Query('sortOrder') sortOrder: 'ASC' | 'DESC' = 'DESC'
+    @Query('sortOrder') sortOrder: 'ASC' | 'DESC' = 'DESC',
+    @Query('isPinned') isPinned: boolean = false
   ) {
     const userId = req.user.id;
-    return this.dashboardService.findAll(userId, page, limit, search, sortBy, sortOrder);
+    return this.dashboardService.findAll(userId, page, limit, search, sortBy, sortOrder, isPinned);
   }
 
   @Get('count')
@@ -158,5 +168,15 @@ export class DashboardController {
   async getDashboardInfo(@Request() req, @Param('id') id: string) {
     const userId = req.user.id;
     return this.dashboardService.getDashboardInfo(+id, userId);
+  }
+
+  @Patch('pin/:id')
+  @ApiOperation({ summary: 'Pin and unpin a dashboard (toggle)'})
+  @ApiResponse({ type: MessageDto })
+  @HttpCode(HttpStatus.OK)
+  async togglePin(@Request() req, @Param('id') id: string) {
+    const userId = req.user.id;
+    const message = await this.dashboardService.togglePin(+id, userId);
+    return { message };
   }
 }

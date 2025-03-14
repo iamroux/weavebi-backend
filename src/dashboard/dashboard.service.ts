@@ -101,6 +101,7 @@ export class DashboardService {
     search: string = '',
     sortBy: string = 'createdAt',
     sortOrder: 'ASC' | 'DESC' = 'DESC',
+    isPinned: boolean = false,
   ) {
     try {
       const offset = (page - 1) * limit;
@@ -126,6 +127,10 @@ export class DashboardService {
         queryBuilder.andWhere('dashboard.name ILIKE :search', {
           search: `%${search}%`,
         });
+      }
+
+      if (isPinned) {
+        queryBuilder.andWhere('dashboard.isPinned = :isPinned', { isPinned });
       }
 
       const validSortFields = ['createdAt', 'updatedAt'];
@@ -353,6 +358,27 @@ export class DashboardService {
       }
       this.logger.error(`Failed to fetch dashboard ${id}: ${error.message}`);
       throw new InternalServerErrorException("Couldn't fetch dashboard");
+    }
+  }
+
+  async togglePin(id:number, userId: number){
+
+    try {
+      const dashboard = await this.dashboardRepo.findOne({
+        where: { id, userId },
+      });
+      if (!dashboard) {
+        throw new BadRequestException('Dashboard not found or unauthorized');
+      }
+      // toggle pinned status
+      dashboard.isPinned = !dashboard.isPinned;
+      await this.dashboardRepo.save(dashboard);
+      return `Dashboard ${dashboard.isPinned ? 'pinned' : 'unpinned'} successfully`;
+      
+      
+    } catch (error) {
+      this.logger.error(`Failed to update pinned status for dashboard ${id}: ${error.message}`);
+      throw new InternalServerErrorException("Couldn't update pinned status");
     }
   }
 }
