@@ -377,6 +377,7 @@ export class DashboardService {
       
       
     } catch (error) {
+      if(error instanceof BadRequestException){throw error}
       this.logger.error(`Failed to update pinned status for dashboard ${id}: ${error.message}`);
       throw new InternalServerErrorException("Couldn't update pinned status");
     }
