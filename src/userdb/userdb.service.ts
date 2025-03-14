@@ -683,23 +683,26 @@ export class UserdbService {
       const result = await this.userDbRepo.query(`
         SELECT
           COUNT(d.id) AS "totalCount",
-          SUM(CASE WHEN q."databaseId" IS NOT NULL THEN 1 ELSE 0 END) AS "activeCount",
-          SUM(CASE WHEN q."databaseId" IS NULL THEN 1 ELSE 0 END) AS "inactiveCount"
+          SUM(CASE WHEN EXISTS (
+            SELECT 1 FROM queries q WHERE q."databaseId" = d.id
+          ) THEN 1 ELSE 0 END) AS "activeCount"
         FROM databases d
-        LEFT JOIN queries q ON d.id = q."databaseId"
         WHERE d."userId" = $1
       `, [userId]);
   
       if (result.length === 0) {
         return { totalCount: 0, activeCount: 0, inactiveCount: 0 };
       }
-  
+      
       // Ensure null counts return zero
-      const { totalCount = 0, activeCount = 0, inactiveCount = 0 } = result[0];
+      const { totalCount = 0, activeCount = 0 } = result[0];
+      const parsedTotalCount = parseInt(totalCount, 10);
+      const parsedActiveCount = parseInt(activeCount, 10);
+      
       return {
-        totalCount: parseInt(totalCount, 10),
-        activeCount: parseInt(activeCount, 10),
-        inactiveCount: parseInt(inactiveCount, 10),
+        totalCount: parsedTotalCount,
+        activeCount: parsedActiveCount,
+        inactiveCount: parsedTotalCount - parsedActiveCount
       };
     } catch (error) {
       this.logger.error(`Failed to retrieve database count for user ${userId}: ${error.message}`);
