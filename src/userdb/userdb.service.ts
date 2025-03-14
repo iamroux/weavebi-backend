@@ -456,12 +456,6 @@ export class UserdbService {
         });
       }
     });
-
-    // Add query examples for common patterns
-    context += `\nExample Queries:\n`;
-    context += `1. To join tables with foreign keys, use: SELECT a.*, b.* FROM table_a a JOIN table_b b ON a.foreign_key = b.primary_key\n`;
-    context += `2. For filtering with NULL values, use: WHERE column IS NULL or WHERE column IS NOT NULL\n`;
-
     return context;
   }
 
