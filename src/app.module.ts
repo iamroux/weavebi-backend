@@ -22,7 +22,14 @@ import mailConfig from './config/mail.config';
     AuthModule,
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [llmConfig, appConfig, encryptionConfig, jwtConfig, redisConfig, mailConfig]
+      load: [
+        llmConfig,
+        appConfig,
+        encryptionConfig,
+        jwtConfig,
+        redisConfig,
+        mailConfig,
+      ],
     }),
     UserdbModule,
     QueryModule,

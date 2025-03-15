@@ -163,7 +163,7 @@ export class QueryController {
     required: false,
     type: Number,
     description: 'Number of items per page',
-    default: 10
+    default: 10,
   })
   @ApiQuery({
     name: 'search',
@@ -228,14 +228,14 @@ export class QueryController {
     required: false,
     type: Number,
     description: 'Page number for pagination',
-    default: 1
+    default: 1,
   })
   @ApiQuery({
     name: 'limit',
     required: false,
     type: Number,
     description: 'Number of items per page',
-    default: 10
+    default: 10,
   })
   @ApiQuery({
     name: 'search',
@@ -338,7 +338,9 @@ export class QueryController {
   }
 
   @Get('download-json/:queryId')
-  @ApiOperation({ summary: 'Download a qury output in json (for graphical data only' })
+  @ApiOperation({
+    summary: 'Download a qury output in json (for graphical data only',
+  })
   async downloadQueryDataAsJson(
     @Param('queryId', ParseIntPipe) queryId: number,
     @Res() res: Response,
@@ -354,7 +356,9 @@ export class QueryController {
   }
 
   @Get('download-csv/:queryId')
-  @ApiOperation({ summary: 'Download a qury output in csv (for tabular data only)' })
+  @ApiOperation({
+    summary: 'Download a qury output in csv (for tabular data only)',
+  })
   async downloadQueryDataAsCsv(
     @Param('queryId', ParseIntPipe) queryId: number,
     @Res() res: Response,

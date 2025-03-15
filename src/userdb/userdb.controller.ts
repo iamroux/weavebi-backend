@@ -58,7 +58,7 @@ export class UserdbController {
   @ApiOperation({ summary: 'Get count of database connections' })
   async getCount(@Request() req) {
     const userId = req.user.id;
-    return  await this.userdbService.getCount(userId);
+    return await this.userdbService.getCount(userId);
   }
 
   @Get()
@@ -107,7 +107,14 @@ export class UserdbController {
     @Query('sortOrder') sortOrder: 'ASC' | 'DESC' = 'DESC',
   ) {
     const userId = req.user.id;
-    return this.userdbService.findAll(userId, page, limit, search, sortBy, sortOrder);
+    return this.userdbService.findAll(
+      userId,
+      page,
+      limit,
+      search,
+      sortBy,
+      sortOrder,
+    );
   }
 
   @Patch(':id')

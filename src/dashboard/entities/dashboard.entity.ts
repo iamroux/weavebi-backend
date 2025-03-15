@@ -35,9 +35,8 @@ export class DashboardEntity {
   @Column()
   databaseId: number;
 
-  @Column({default: false})
+  @Column({ default: false })
   isPinned: boolean;
-
 
   @Column()
   userId: number;

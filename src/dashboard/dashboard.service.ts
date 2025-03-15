@@ -65,7 +65,7 @@ export class DashboardService {
         });
         await this.dashboardRepo.manager.save(TaggableEntity, taggable);
       }
-      this.logger.log(`Dashboard ${dashboard.id} created for user ${userId}`)
+      this.logger.log(`Dashboard ${dashboard.id} created for user ${userId}`);
 
       return { message: 'Dashboard created successfully' };
     } catch (error) {
@@ -134,7 +134,9 @@ export class DashboardService {
       }
 
       const validSortFields = ['createdAt', 'updatedAt'];
-      const validSortBy = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
+      const validSortBy = validSortFields.includes(sortBy)
+        ? sortBy
+        : 'createdAt';
       const validSortOrder = sortOrder === 'ASC' ? 'ASC' : 'DESC';
 
       queryBuilder.orderBy(`dashboard.${validSortBy}`, validSortOrder);
@@ -220,7 +222,9 @@ export class DashboardService {
       );
 
       await this.dashboardRepo.save(updatedDashboard);
-      this.logger.log(`Dashobard ${updatedDashboard.id} updated for user ${userId}`)
+      this.logger.log(
+        `Dashobard ${updatedDashboard.id} updated for user ${userId}`,
+      );
       return { message: 'Dashboard updated successfully', updatedDashboard };
     } catch (error) {
       if (error instanceof BadRequestException) {
@@ -274,7 +278,9 @@ export class DashboardService {
         })
         .execute();
 
-        this.logger.log(`Layout for query:  ${queryId} dashboard ${dashboardId} updated`)
+      this.logger.log(
+        `Layout for query:  ${queryId} dashboard ${dashboardId} updated`,
+      );
 
       return 'Position created successfully';
     } catch (error) {
@@ -295,7 +301,7 @@ export class DashboardService {
       if (result.affected === 0) {
         throw new BadRequestException('Dashboard not found');
       }
-      this.logger.log(`Dashboard ${id} deleted  for user ${userId}`)
+      this.logger.log(`Dashboard ${id} deleted  for user ${userId}`);
 
       return 'Dashboard deleted successfully';
     } catch (error) {
@@ -361,8 +367,7 @@ export class DashboardService {
     }
   }
 
-  async togglePin(id:number, userId: number){
-
+  async togglePin(id: number, userId: number) {
     try {
       const dashboard = await this.dashboardRepo.findOne({
         where: { id, userId },
@@ -374,11 +379,13 @@ export class DashboardService {
       dashboard.isPinned = !dashboard.isPinned;
       await this.dashboardRepo.save(dashboard);
       return `Dashboard ${dashboard.isPinned ? 'pinned' : 'unpinned'} successfully`;
-      
-      
     } catch (error) {
-      if(error instanceof BadRequestException){throw error}
-      this.logger.error(`Failed to update pinned status for dashboard ${id}: ${error.message}`);
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      this.logger.error(
+        `Failed to update pinned status for dashboard ${id}: ${error.message}`,
+      );
       throw new InternalServerErrorException("Couldn't update pinned status");
     }
   }

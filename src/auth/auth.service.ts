@@ -26,12 +26,11 @@ export class AuthService {
     @InjectRepository(UserEntity)
     private readonly userRepo: Repository<UserEntity>,
     private readonly jwtService: JwtService,
-    private readonly configService:ConfigService,
+    private readonly configService: ConfigService,
   ) {
     this.redisClient = new Redis({
       host: configService.get<string>('redis.host'),
-      port: configService.get<number>('redis.port')
-      
+      port: configService.get<number>('redis.port'),
     });
 
     this.mailer = nodemailer.createTransport({
@@ -60,7 +59,7 @@ export class AuthService {
       }
       const newUser = this.userRepo.create({ ...createAuthDto });
       await this.userRepo.save(newUser);
-      this.logger.log(`Created new user ${newUser.id}`)
+      this.logger.log(`Created new user ${newUser.id}`);
       return 'User created successfully.';
     } catch (error) {
       this.logger.error(`Failed to create user. Error: ${error.message}`);
@@ -87,7 +86,7 @@ export class AuthService {
         name: user.name,
       };
       const token = await this.jwtService.signAsync(payload);
-      this.logger.log(`Token generated for user ${user.id}`)
+      this.logger.log(`Token generated for user ${user.id}`);
       return {
         access_token: token,
       };
@@ -127,14 +126,12 @@ export class AuthService {
         html: emailTemplate,
       });
       await this.redisClient.set(`otp:${email}`, otp, 'EX', 300);
-      this.logger.log(`Email sent to ${email}`)
+      this.logger.log(`Email sent to ${email}`);
       return 'Email sent.';
     } catch (error) {
       this.logger.error(`Failed to send email: ${error.message}`);
       throw new Error(`Failed to send email Error: ${error.message}`);
     }
-
-
   }
 
   async resetPassword(data: { email: string; otp: string; password: string }) {
@@ -150,7 +147,7 @@ export class AuthService {
       await this.userRepo.save(user);
 
       await this.redisClient.del(`otp:${email}`);
-      this.logger.log(`Password updated for user ${user.id}`)
+      this.logger.log(`Password updated for user ${user.id}`);
 
       return 'Password reset successfully.';
     } catch (error) {

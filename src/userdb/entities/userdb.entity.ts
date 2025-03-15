@@ -15,13 +15,11 @@ import {
 } from 'typeorm';
 import { EncryptionService } from 'src/query/encryption.service';
 
-
 export enum SSLMode {
   DISABLE = 'DISABLE',
   PREFER = 'PREFER',
   REQUIRE = 'REQUIRE',
 }
-
 
 @Entity('databases')
 export class UserdbEntity {

@@ -11,59 +11,38 @@ import { SSLMode, UserdbEntity } from './entities/userdb.entity';
 import {
   DataSource,
   DataSourceOptions,
+  QueryRunner,
   Repository,
-  Table,
-  TableColumn,
-  TableForeignKey,
 } from 'typeorm';
 import { UpdateUserdbDto } from './dto/update-userdb.dto';
 import { getSSLConfig, mapProviderToTypeORM } from 'src/common/database-utils';
 
-// Additional interfaces for schema
-interface RelationshipMap {
-  [tableName: string]: Array<{
-    type: 'hasMany' | 'belongsTo';
-    table: string;
-    foreignKey: string;
-    localKey: string;
-  }>;
-}
-
 interface SchemaResult {
-  metadata: SchemaMetadata;
-  schema: Schema;
-  context: string; // LLM-friendly context
+  metadata: {
+    databaseType: string;
+    totalTables: number;
+    totalColumns: number;
+  };
+  schema: {
+    [tableName: string]: {
+      columns: Array<{
+        name: string;
+        type: string;
+        isPrimary: boolean;
+        isNullable?: boolean;
+        isUnique?: boolean;
+        default?: string;
+        enumValues?: string[];
+      }>;
+      foreignKeys?: Array<{
+        columnName: string;
+        referencedTableName: string;
+        referencedColumnName: string;
+      }>;
+    };
+  };
 }
 
-interface SchemaMetadata {
-  databaseType: string;
-  totalTables: number;
-  totalColumns: number;
-}
-
-interface Schema {
-  [tableName: string]: TableInfo;
-}
-
-interface TableInfo {
-  columns: ColumnInfo[];
-  foreignKeys?: ForeignKeyInfo[];
-}
-
-interface ColumnInfo {
-  name: string;
-  type: string;
-  isPrimary: boolean;
-  isNullable?: boolean;
-  isUnique?: boolean;
-  default?: string;
-}
-
-interface ForeignKeyInfo {
-  columnName: string;
-  referencedTableName: string;
-  referencedColumnName: string;
-}
 
 @Injectable()
 export class UserdbService {
@@ -74,7 +53,7 @@ export class UserdbService {
     private readonly userDbRepo: Repository<UserdbEntity>,
   ) {}
 
-
+  
 
   // Optimized schema extraction
   async getSchema(
@@ -84,69 +63,27 @@ export class UserdbService {
     username: string,
     password: string,
     database: string,
-    ssl: SSLMode = SSLMode.DISABLE
-      
+    ssl: SSLMode = SSLMode.DISABLE,
   ): Promise<SchemaResult> {
+    const typeormProvider = mapProviderToTypeORM(provider);
+    const options: DataSourceOptions = {
+      type: typeormProvider,
+      host,
+      port,
+      username,
+      password,
+      database,
+      ssl: getSSLConfig(ssl),
+    };
+    const tempDataSource = new DataSource(options);
+
     try {
-      const typeormProvider = mapProviderToTypeORM(provider);
-      const options: DataSourceOptions = {
-        type: typeormProvider,
-        host,
-        port,
-        username,
-        password,
-        database,
-        ssl: getSSLConfig(ssl),
-
-      }
-      const tempDataSource = new DataSource(options);
-   
-
-      try {
-        await tempDataSource.initialize();
-      } catch (initError) {
-        this.handleConnectionError(initError);
-      }
-
+      await tempDataSource.initialize();
       const queryRunner = tempDataSource.createQueryRunner();
 
       try {
-        const tables = await queryRunner.getTables();
-        const schema: Schema = {};
-        const relationships: RelationshipMap = {}; // Track relationships for LLM context
-
-        // Filter out system tables
-        const filteredTables = this.filterSystemTables(tables, provider);
-
-        // Process each table
-        for (const table of filteredTables) {
-          // Normalize column information for LLM understanding
-          const columns = this.normalizeColumns(table.columns, provider);
-
-          // Standardize foreign key formats across all DB types
-          const foreignKeys = this.normalizeForeignKeys(table.foreignKeys);
-
-          // Track relationships for clearer LLM context
-          this.trackRelationships(relationships, table.name, foreignKeys);
-
-          // Add normalized table to schema
-          schema[table.name] = {
-            columns,
-            ...(foreignKeys.length > 0 && { foreignKeys }),
-          };
-        }
-
-        await queryRunner.release();
-        await tempDataSource.destroy();
-
-        // Generate LLM-friendly context
-        const schemaContext = this.generateLLMContext(
-          schema,
-          relationships,
-          provider,
-        );
-
-        this.logger.log(`Schema for database ${database} generated`)
+        // Extract schema using provider-specific queries
+        const schema = await this.extractSchemaWithRawQueries(queryRunner, provider);
 
         return {
           metadata: {
@@ -158,306 +95,294 @@ export class UserdbService {
             ),
           },
           schema,
-          context: schemaContext, // LLM-specific context for better query generation
         };
-      } catch (tablesError) {
-        throw new BadRequestException('Schema extraction failed', {
-          description: `Unable to retrieve database tables: ${tablesError.message}`,
-          cause: tablesError,
-        });
       } finally {
-        // Ensure resources are released
-        try {
-          if(queryRunner)
-          {await queryRunner.release();}
-          if(tempDataSource && tempDataSource.isInitialized){
-          await tempDataSource.destroy();}
-        } catch (cleanupError) {
-          this.logger.warn(`Resource cleanup error: ${cleanupError.message}`);
-        }
+        await queryRunner.release();
+        await tempDataSource.destroy();
       }
     } catch (error) {
-      this.logger.error(`Unexpected schema extraction error: ${error.message}`);
-
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-
-      throw new BadRequestException('Unexpected database schema error', {
-        description:
-          'Failed to extract database schema due to an unexpected error',
+      this.logger.error(`Schema extraction failed: ${error.message}`);
+      throw new BadRequestException('Schema extraction failed', {
         cause: error,
       });
     }
   }
 
-  // Handle connection errors with standardized messaging
-  private handleConnectionError(initError: any): never {
-    if (
-      initError.code === '28P01' ||
-      initError.code === '28000' ||
-      initError.message?.includes('authentication')
-    ) {
-      throw new BadRequestException('Authentication failed', {
-        description: 'Invalid username or password for database connection',
-      });
-    }
-
-    if (
-      initError.code === '3D000' ||
-      initError.code === '42000' ||
-      (initError.message?.includes('database') &&
-        initError.message?.includes('not exist'))
-    ) {
-      throw new BadRequestException('Database access error', {
-        description: 'Specified database does not exist or cannot be accessed',
-      });
-    }
-
-    if (
-      initError.code === '08001' ||
-      initError.code === '08006' ||
-      (initError.message?.includes('connect') &&
-        initError.message?.includes('failed'))
-    ) {
-      throw new BadRequestException('Connection failed', {
-        description: 'Unable to establish a connection to the database server',
-      });
-    }
-
-    throw new BadRequestException('Database connection error', {
-      description: `Failed to initialize database connection: ${initError.message}`,
-      cause: initError,
-    });
-  }
-
-  // Filter out system tables based on database provider
-  private filterSystemTables(tables: Table[], provider: string): Table[] {
-    const systemSchemas = [
-      'information_schema',
-      'sys',
-      'performance_schema',
-      'mysql',
-      'pg_catalog',
-      'SYS',
-      'SYSTEM',
-      'CTXSYS',
-      'MDSYS',
-      'DBSNMP',
-      'tempdb',
-      'model',
-      'msdb',
-      'master',
-    ];
-
-    const systemTablePatterns = [
-      /^pg_/,
-      /^_pg_/,
-      /^sqlite_/,
-      /^sys/,
-      /^APEX_/,
-      /^FLOWS_/,
-      /^msreplication_/,
-      /^spt_/,
-      /^sysdtslog/,
-    ];
-
-    return tables.filter((table) => {
-      // Skip tables in system schemas
-      if (systemSchemas.includes(table.schema ?? '')) {
-        return false;
-      }
-
-      // Skip tables with system naming patterns
-      return !systemTablePatterns.some((pattern) => pattern.test(table.name));
-    });
-  }
-
-  // Normalize column information for consistency across database types
-  private normalizeColumns(
-    columns: TableColumn[],
+  // Extract schema using raw SQL queries
+  private async extractSchemaWithRawQueries(
+    queryRunner: QueryRunner,
     provider: string,
-  ): ColumnInfo[] {
-    return columns.map((col) => {
-      // Normalize type names for consistency
-      const normalizedType = this.normalizeDataType(col.type, provider);
+  ): Promise<SchemaResult['schema']> {
+    switch (provider) {
+      case 'mysql':
+      case 'mariadb':
+        return this.extractMySQLSchema(queryRunner);
+      case 'postgres':
+        return this.extractPostgresSchema(queryRunner);
+      case 'mssql':
+        return this.extractMSSQLSchema(queryRunner);
+      case 'oracle':
+        return this.extractOracleSchema(queryRunner);
+      default:
+        throw new Error(`Unsupported database provider: ${provider}`);
+    }
+  }
 
-      // Build column info with only essential properties
-      const columnInfo: ColumnInfo = {
-        name: col.name,
-        type: normalizedType,
-        isPrimary: col.isPrimary,
+  // MySQL/MariaDB schema extraction
+  private async extractMySQLSchema(queryRunner: QueryRunner): Promise<SchemaResult['schema']> {
+    const schema: SchemaResult['schema'] = {};
+
+    // Get tables
+    const tables = await queryRunner.query(`
+      SELECT table_name
+      FROM information_schema.tables
+      WHERE table_schema = DATABASE()
+    `);
+
+    for (const table of tables) {
+      const tableName = table.TABLE_NAME;
+
+      // Get columns
+      const columns = await queryRunner.query(
+        `
+        SELECT column_name, data_type, is_nullable, column_key, column_default
+        FROM information_schema.columns
+        WHERE table_schema = DATABASE() AND table_name = ?
+      `,
+        [tableName],
+      );
+
+      // Get foreign keys
+      const foreignKeys = await queryRunner.query(
+        `
+        SELECT column_name, referenced_table_name, referenced_column_name
+        FROM information_schema.key_column_usage
+        WHERE table_schema = DATABASE() AND table_name = ?
+          AND referenced_table_name IS NOT NULL
+      `,
+        [tableName],
+      );
+
+      schema[tableName] = {
+        columns: columns.map((col) => ({
+          name: col.COLUMN_NAME,
+          type: col.DATA_TYPE,
+          isPrimary: col.COLUMN_KEY === 'PRI',
+          isNullable: col.IS_NULLABLE === 'YES',
+          isUnique: col.COLUMN_KEY === 'UNI',
+          default: this.normalizeDefaultValue(col.COLUMN_DEFAULT),
+        })),
+        foreignKeys: foreignKeys
+          .filter((fk) => fk.REFERENCED_TABLE_NAME !== tableName) // Remove self-referential FKs
+          .map((fk) => ({
+            columnName: fk.COLUMN_NAME,
+            referencedTableName: fk.REFERENCED_TABLE_NAME,
+            referencedColumnName: fk.REFERENCED_COLUMN_NAME,
+          })),
       };
+    }
 
-      // Only include constraints that matter for query generation
-      if (!col.isNullable) {
-        columnInfo.isNullable = false;
-      }
-
-      if (col.isUnique) {
-        columnInfo.isUnique = true;
-      }
-
-      // Include default values if they exist
-      if (col.default !== undefined && col.default !== null) {
-        columnInfo.default = this.normalizeDefaultValue(col.default);
-      }
-
-      return columnInfo;
-    });
+    return schema;
   }
-  // Normalize data types across different database providers
-  private normalizeDataType(type: string, provider: string): string {
-    // Extract base type without size/precision
-    const baseType = type.split('(')[0].toLowerCase();
 
-    // Map provider-specific types to standard SQL types
-    const typeMap: Record<string, Record<string, string>> = {
-      mysql: {
-        int: 'integer',
-        varchar: 'varchar',
-        datetime: 'timestamp',
-        'tinyint(1)': 'boolean',
-      },
-      postgres: {
-        int4: 'integer',
-        int8: 'bigint',
-        varchar: 'varchar',
-        timestamptz: 'timestamp',
-        bool: 'boolean',
-      },
-      oracle: {
-        number: 'numeric',
-        varchar2: 'varchar',
-        date: 'timestamp',
-      },
-      mssql: {
-        nvarchar: 'varchar',
-        datetime: 'timestamp',
-        bit: 'boolean',
-      },
-    };
+  // Postgres schema extraction
+  private async extractPostgresSchema(queryRunner: QueryRunner): Promise<SchemaResult['schema']> {
+    const schema: SchemaResult['schema'] = {};
 
-    // Return normalized type if available, otherwise return the base type
-    return typeMap[provider]?.[baseType] || baseType;
+    // Get tables
+    const tables = await queryRunner.query(`
+      SELECT table_name
+      FROM information_schema.tables
+      WHERE table_schema = 'public'
+    `);
+
+    for (const table of tables) {
+      const tableName = table.table_name;
+
+      // Get columns
+      const columns = await queryRunner.query(`
+        SELECT column_name, data_type, is_nullable, column_default, udt_name
+        FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = $1
+      `, [tableName]);
+
+      // Get enum values for enum types
+      const enumColumns = columns.filter((col) => col.udt_name.startsWith('enum_'));
+      const enumValuesMap = new Map<string, string[]>();
+      for (const col of enumColumns) {
+        const enumValues = await queryRunner.query(`
+          SELECT unnest(enum_range(NULL::${col.udt_name})) AS value
+        `);
+        enumValuesMap.set(col.column_name, enumValues.map((v) => v.value));
+      }
+
+      // Get foreign keys
+      const foreignKeys = await queryRunner.query(`
+        SELECT kcu.column_name, ccu.table_name AS referenced_table_name, ccu.column_name AS referenced_column_name
+        FROM information_schema.key_column_usage kcu
+        JOIN information_schema.constraint_column_usage ccu
+          ON kcu.constraint_name = ccu.constraint_name
+        WHERE kcu.table_schema = 'public' AND kcu.table_name = $1
+      `, [tableName]);
+
+      schema[tableName] = {
+        columns: columns.map((col) => ({
+          name: col.column_name,
+          type: col.data_type,
+          isPrimary: col.is_identity === 'YES',
+          isNullable: col.is_nullable === 'YES',
+          default: this.normalizeDefaultValue(col.column_default),
+          enumValues: enumValuesMap.get(col.column_name), // Add enum values
+        })),
+        foreignKeys: foreignKeys
+          .filter((fk) => fk.referenced_table_name !== tableName) // Remove self-referential FKs
+          .map((fk) => ({
+            columnName: fk.column_name,
+            referencedTableName: fk.referenced_table_name,
+            referencedColumnName: fk.referenced_column_name,
+          })),
+      };
+    }
+
+    return schema;
   }
-  // Standardize default values
-  private normalizeDefaultValue(defaultValue: any): string {
-    if (defaultValue === null) {
-      return 'NULL';
+
+  // MSSQL schema extraction
+  private async extractMSSQLSchema(queryRunner: QueryRunner): Promise<SchemaResult['schema']> {
+    const schema: SchemaResult['schema'] = {};
+
+    // Get tables
+    const tables = await queryRunner.query(`
+      SELECT name AS table_name
+      FROM sys.tables
+    `);
+
+    for (const table of tables) {
+      const tableName = table.table_name;
+
+      // Get columns
+      const columns = await queryRunner.query(
+        `
+        SELECT col.name AS column_name, typ.name AS data_type, col.is_nullable, col.is_identity, col.default_value
+        FROM sys.columns col
+        JOIN sys.types typ ON col.user_type_id = typ.user_type_id
+        WHERE col.object_id = OBJECT_ID(?)
+      `,
+        [tableName],
+      );
+
+      // Get foreign keys
+      const foreignKeys = await queryRunner.query(
+        `
+        SELECT fkcol.name AS column_name, pktab.name AS referenced_table_name, pkcol.name AS referenced_column_name
+        FROM sys.foreign_key_columns fkc
+        JOIN sys.columns fkcol ON fkc.parent_object_id = fkcol.object_id AND fkc.parent_column_id = fkcol.column_id
+        JOIN sys.columns pkcol ON fkc.referenced_object_id = pkcol.object_id AND fkc.referenced_column_id = pkcol.column_id
+        JOIN sys.tables pktab ON fkc.referenced_object_id = pktab.object_id
+        WHERE fkc.parent_object_id = OBJECT_ID(?)
+      `,
+        [tableName],
+      );
+
+      schema[tableName] = {
+        columns: columns.map((col) => ({
+          name: col.column_name,
+          type: col.data_type,
+          isPrimary: col.is_identity === 1,
+          isNullable: col.is_nullable === 1,
+          default: this.normalizeDefaultValue(col.default_value),
+        })),
+        foreignKeys: foreignKeys
+          .filter((fk) => fk.referenced_table_name !== tableName) // Remove self-referential FKs
+          .map((fk) => ({
+            columnName: fk.column_name,
+            referencedTableName: fk.referenced_table_name,
+            referencedColumnName: fk.referenced_column_name,
+          })),
+      };
+    }
+
+    return schema;
+  }
+
+  // Oracle schema extraction
+  private async extractOracleSchema(queryRunner: QueryRunner): Promise<SchemaResult['schema']> {
+    const schema: SchemaResult['schema'] = {};
+
+    // Get tables
+    const tables = await queryRunner.query(`
+      SELECT table_name
+      FROM user_tables
+    `);
+
+    for (const table of tables) {
+      const tableName = table.TABLE_NAME;
+
+      // Get columns
+      const columns = await queryRunner.query(`
+        SELECT column_name, data_type, nullable, data_default
+        FROM user_tab_columns
+        WHERE table_name = ?
+      `, [tableName]);
+
+      // Get primary keys
+      const primaryKeys = await queryRunner.query(`
+        SELECT cols.column_name
+        FROM user_constraints cons
+        JOIN user_cons_columns cols ON cons.constraint_name = cols.constraint_name
+        WHERE cons.table_name = ? AND cons.constraint_type = 'P'
+      `, [tableName]);
+
+      // Get foreign keys
+      const foreignKeys = await queryRunner.query(`
+        SELECT a.column_name, c_pk.table_name AS referenced_table_name, c_pk.column_name AS referenced_column_name
+        FROM user_cons_columns a
+        JOIN user_constraints c ON a.constraint_name = c.constraint_name
+        JOIN user_cons_columns c_pk ON c.r_constraint_name = c_pk.constraint_name
+        WHERE c.constraint_type = 'R' AND a.table_name = ?
+      `, [tableName]);
+
+      schema[tableName] = {
+        columns: columns.map((col) => ({
+          name: col.COLUMN_NAME,
+          type: col.DATA_TYPE,
+          isPrimary: primaryKeys.some((pk) => pk.column_name === col.COLUMN_NAME),
+          isNullable: col.NULLABLE === 'Y',
+          default: this.normalizeDefaultValue(col.DATA_DEFAULT),
+        })),
+        foreignKeys: foreignKeys
+          .filter((fk) => fk.referenced_table_name !== tableName) // Remove self-referential FKs
+          .map((fk) => ({
+            columnName: fk.COLUMN_NAME,
+            referencedTableName: fk.REFERENCED_TABLE_NAME,
+            referencedColumnName: fk.REFERENCED_COLUMN_NAME,
+          })),
+      };
+    }
+
+    return schema;
+  }
+
+  // Normalize default values
+  private normalizeDefaultValue(defaultValue: any): string | undefined {
+    if (defaultValue === null || defaultValue === undefined) {
+      return undefined; // Use undefined (without quotes)
     }
 
     if (typeof defaultValue === 'string') {
-      // Clean up function calls and standardize formatting
-      return defaultValue.replace(
-        /^(nextval\(|now\(|uuid_generate_v4\().*\)$/,
-        'AUTO_GENERATED',
-      );
+      // Normalize function calls (e.g., `nextval`)
+      if (defaultValue.startsWith('nextval')) {
+        return 'AUTO_GENERATED';
+      }
+      if (defaultValue.startsWith('now')) {
+        return 'AUTO_GENERATED';
+      }
     }
 
     return String(defaultValue);
   }
 
-  // Normalize foreign keys for consistency
-  private normalizeForeignKeys(
-    foreignKeys: TableForeignKey[],
-  ): ForeignKeyInfo[] {
-    return foreignKeys.map((fk) => ({
-      columnName: fk.columnNames[0],
-      referencedTableName: fk.referencedTableName,
-      referencedColumnName: fk.referencedColumnNames[0],
-    }));
-  }
-
-  // Track relationships between tables for LLM context
-  private trackRelationships(
-    relationships: RelationshipMap,
-    tableName: string,
-    foreignKeys: ForeignKeyInfo[],
-  ): void {
-    if (!relationships[tableName]) {
-      relationships[tableName] = [];
-    }
-
-    for (const fk of foreignKeys) {
-      // Add "has many" relationship
-      if (!relationships[fk.referencedTableName]) {
-        relationships[fk.referencedTableName] = [];
-      }
-
-      relationships[fk.referencedTableName].push({
-        type: 'hasMany',
-        table: tableName,
-        foreignKey: fk.columnName,
-        localKey: fk.referencedColumnName,
-      });
-
-      // Add "belongs to" relationship
-      relationships[tableName].push({
-        type: 'belongsTo',
-        table: fk.referencedTableName,
-        foreignKey: fk.columnName,
-        localKey: fk.referencedColumnName,
-      });
-    }
-  }
-
-  // Generate LLM-friendly context string
-  private generateLLMContext(
-    schema: Schema,
-    relationships: RelationshipMap,
-    provider: string,
-  ): string {
-    let context = `Database Type: ${provider}\n\n`;
-    context += `Table Summary:\n`;
-
-    // Add table information in a format that's easy for LLMs to understand
-    Object.entries(schema).forEach(([tableName, tableInfo]) => {
-      context += `\nTable: ${tableName}\n`;
-
-      // Primary key information
-      const primaryKeys = tableInfo.columns
-        .filter((col) => col.isPrimary)
-        .map((col) => col.name);
-
-      if (primaryKeys.length > 0) {
-        context += `Primary Key(s): ${primaryKeys.join(', ')}\n`;
-      }
-
-      // Important columns (adding semantic meaning)
-      context += `Columns:\n`;
-      tableInfo.columns.forEach((col) => {
-        let colDescription = `  - ${col.name} (${col.type})`;
-
-        if (col.isPrimary) {
-          colDescription += ` PRIMARY KEY`;
-        }
-
-        if (col.isUnique) {
-          colDescription += ` UNIQUE`;
-        }
-
-        if (col.isNullable === false) {
-          colDescription += ` NOT NULL`;
-        }
-
-        context += `${colDescription}\n`;
-      });
-
-      // Relationships in natural language
-      if (relationships[tableName] && relationships[tableName].length > 0) {
-        context += `Relationships:\n`;
-        relationships[tableName].forEach((rel) => {
-          if (rel.type === 'hasMany') {
-            context += `  - One ${tableName} has many ${rel.table} (via ${rel.table}.${rel.foreignKey})\n`;
-          } else if (rel.type === 'belongsTo') {
-            context += `  - Each ${tableName} belongs to one ${rel.table} (via ${tableName}.${rel.foreignKey})\n`;
-          }
-        });
-      }
-    });
-    return context;
-  }
+ 
 
   // ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
   // Create a new database connection
@@ -491,7 +416,7 @@ export class UserdbService {
         createUserdbDto.username,
         createUserdbDto.password,
         createUserdbDto.name,
-        createUserdbDto.ssl
+        createUserdbDto.ssl,
       );
 
       if (!schema || typeof schema !== 'object') {
@@ -506,7 +431,7 @@ export class UserdbService {
       });
 
       await this.userDbRepo.save(newDatabase);
-      this.logger.log(`Database ${newDatabase.id} saved`)
+      this.logger.log(`Database ${newDatabase.id} created`);
       return 'Database added successfully';
     } catch (error) {
       this.logger.error(
@@ -544,7 +469,14 @@ export class UserdbService {
     }
   }
 
-  async findAll(userId: number, page: number, limit: number, search: string, sortBy: string = 'createdAt', sortOrder: 'ASC' | 'DESC' = 'DESC') {
+  async findAll(
+    userId: number,
+    page: number,
+    limit: number,
+    search: string,
+    sortBy: string = 'createdAt',
+    sortOrder: 'ASC' | 'DESC' = 'DESC',
+  ) {
     try {
       const queryBuilder = this.userDbRepo
         .createQueryBuilder('userdb')
@@ -558,7 +490,9 @@ export class UserdbService {
       }
 
       const validSortFields = ['createdAt', 'updatedAt'];
-      const validSortBy = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
+      const validSortBy = validSortFields.includes(sortBy)
+        ? sortBy
+        : 'createdAt';
       const validSortOrder = sortOrder === 'ASC' ? 'ASC' : 'DESC';
 
       queryBuilder.orderBy(`userdb.${validSortBy}`, validSortOrder);
@@ -595,9 +529,14 @@ export class UserdbService {
     try {
       // Convert provider to TypeORM's expected type
       const typeormProvider = mapProviderToTypeORM(
-        createUserdbDto.provider as 'mysql' | 'mariadb' | 'postgres' | 'mssql' | 'oracle'
+        createUserdbDto.provider as
+          | 'mysql'
+          | 'mariadb'
+          | 'postgres'
+          | 'mssql'
+          | 'oracle',
       );
-      
+
       const tempDataSource = new DataSource({
         type: typeormProvider,
         host: createUserdbDto.host,
@@ -605,9 +544,9 @@ export class UserdbService {
         username: createUserdbDto.username,
         password: createUserdbDto.password,
         database: createUserdbDto.name,
-        ssl: getSSLConfig(createUserdbDto.ssl || SSLMode.DISABLE)
+        ssl: getSSLConfig(createUserdbDto.ssl || SSLMode.DISABLE),
       });
-      
+
       try {
         await tempDataSource.initialize();
       } catch (initError) {
@@ -674,7 +613,8 @@ export class UserdbService {
 
   async getCount(userId: number) {
     try {
-      const result = await this.userDbRepo.query(`
+      const result = await this.userDbRepo.query(
+        `
         SELECT
           COUNT(d.id) AS "totalCount",
           SUM(CASE WHEN EXISTS (
@@ -682,29 +622,33 @@ export class UserdbService {
           ) THEN 1 ELSE 0 END) AS "activeCount"
         FROM databases d
         WHERE d."userId" = $1
-      `, [userId]);
-  
+      `,
+        [userId],
+      );
+
       if (result.length === 0) {
         return { totalCount: 0, activeCount: 0, inactiveCount: 0 };
       }
-      
+
       // Ensure null counts return zero
       const { totalCount = 0, activeCount = 0 } = result[0];
       const parsedTotalCount = parseInt(totalCount, 10);
       const parsedActiveCount = parseInt(activeCount, 10);
-      
+
       return {
         totalCount: parsedTotalCount,
         activeCount: parsedActiveCount,
-        inactiveCount: parsedTotalCount - parsedActiveCount
+        inactiveCount: parsedTotalCount - parsedActiveCount,
       };
     } catch (error) {
-      this.logger.error(`Failed to retrieve database count for user ${userId}: ${error.message}`);
-      throw new InternalServerErrorException('Failed to retrieve database count');
+      this.logger.error(
+        `Failed to retrieve database count for user ${userId}: ${error.message}`,
+      );
+      throw new InternalServerErrorException(
+        'Failed to retrieve database count',
+      );
     }
   }
-  
-  
 
   async update(userId: number, id: number, updateUserdbDto: UpdateUserdbDto) {
     try {
@@ -727,7 +671,7 @@ export class UserdbService {
         updateUserdbDto.username || '',
         updateUserdbDto.password || '',
         updateUserdbDto.name || '',
-        updateUserdbDto.ssl || SSLMode.DISABLE
+        updateUserdbDto.ssl || SSLMode.DISABLE,
       );
 
       // Update the database entry with the new schema and other provided details
@@ -737,7 +681,7 @@ export class UserdbService {
       });
 
       await this.userDbRepo.save(updatedDatabase);
-      this.logger.log(`Database ${id} for user ${userId} updated`)
+      this.logger.log(`Database ${id} for user ${userId} updated`);
       return 'Database updated successfully';
     } catch (error) {
       if (error instanceof BadRequestException) {
@@ -769,7 +713,7 @@ export class UserdbService {
           'userId',
           'connectionName',
           'description',
-          'ssl'
+          'ssl',
         ],
       });
 
@@ -803,7 +747,7 @@ export class UserdbService {
       }
 
       await this.userDbRepo.remove(database);
-      this.logger.log(`Database ${id} for user ${userId} deleted`)
+      this.logger.log(`Database ${id} for user ${userId} deleted`);
       return 'Database deleted successfully';
     } catch (error) {
       this.logger.error(
