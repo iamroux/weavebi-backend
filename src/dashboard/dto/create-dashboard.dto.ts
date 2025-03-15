@@ -7,14 +7,14 @@ import {
 } from 'class-validator';
 
 export class CreateDashboardDto {
-  @ApiProperty({example: 'Sales'})
+  @ApiProperty({ example: 'Sales' })
   @IsNotEmpty()
   name: string;
 
-  @ApiProperty({example: 'Sales dashboard for the year 2021 HR department'})
+  @ApiProperty({ example: 'Sales dashboard for the year 2021 HR department' })
   description: string;
 
-  @ApiProperty({example: 1})
+  @ApiProperty({ example: 1 })
   @IsNotEmpty()
   databaseId: number;
 

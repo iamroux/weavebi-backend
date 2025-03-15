@@ -3,37 +3,36 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
 import { SSLMode } from '../entities/userdb.entity';
 
-
 export class CreateUserdbDto {
-  @ApiProperty({example: 'employees'})
+  @ApiProperty({ example: 'employees' })
   @Optional()
   connectionName: string;
 
-  @ApiProperty({example: 'This is my test employees database'})
+  @ApiProperty({ example: 'This is my test employees database' })
   @Optional()
   description: string;
 
-  @ApiProperty({example: 'postgres'})
+  @ApiProperty({ example: 'postgres' })
   @IsNotEmpty()
   provider: string;
 
-  @ApiProperty({example: 'employees'})
+  @ApiProperty({ example: 'employees' })
   @IsNotEmpty()
   name: string;
 
-  @ApiProperty({example: 'postgres'})
+  @ApiProperty({ example: 'postgres' })
   @IsNotEmpty()
   username: string;
 
-  @ApiProperty({example: 'secret'})
+  @ApiProperty({ example: 'secret' })
   @IsNotEmpty()
   password: string;
 
-  @ApiProperty({example: 'localhost'})
+  @ApiProperty({ example: 'localhost' })
   @IsNotEmpty()
   host: string;
 
-  @ApiProperty({example: 5432})
+  @ApiProperty({ example: 5432 })
   @IsNotEmpty()
   port: number;
 
@@ -41,5 +40,4 @@ export class CreateUserdbDto {
   @IsOptional()
   @IsEnum(SSLMode)
   ssl?: SSLMode;
-  
 }

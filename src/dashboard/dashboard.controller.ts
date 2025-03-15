@@ -56,14 +56,14 @@ export class DashboardController {
     required: false,
     type: Number,
     description: 'Page number for pagination',
-    default: 1
+    default: 1,
   })
   @ApiQuery({
     name: 'limit',
     required: false,
     type: Number,
     description: 'Number of items per page',
-    default: 10
+    default: 10,
   })
   @ApiQuery({
     name: 'search',
@@ -76,21 +76,21 @@ export class DashboardController {
     required: false,
     type: String,
     description: 'Sort by createdAt or updatedAt',
-    enum: ['createdAt', 'updatedAt']
+    enum: ['createdAt', 'updatedAt'],
   })
   @ApiQuery({
     name: 'sortOrder',
     required: false,
     type: String,
     description: 'Sort order asc or desc',
-    enum: ['ASC', 'DESC']
+    enum: ['ASC', 'DESC'],
   })
   @ApiQuery({
     name: 'isPinned',
     required: false,
     type: Boolean,
     description: 'Filter by pinned dashboards',
-    default: false
+    default: false,
   })
   async findAll(
     @Request() req,
@@ -99,10 +99,18 @@ export class DashboardController {
     @Query('search') search: string = '',
     @Query('sortBy') sortBy: string = 'createdAt',
     @Query('sortOrder') sortOrder: 'ASC' | 'DESC' = 'DESC',
-    @Query('isPinned') isPinned: boolean = false
+    @Query('isPinned') isPinned: boolean = false,
   ) {
     const userId = req.user.id;
-    return this.dashboardService.findAll(userId, page, limit, search, sortBy, sortOrder, isPinned);
+    return this.dashboardService.findAll(
+      userId,
+      page,
+      limit,
+      search,
+      sortBy,
+      sortOrder,
+      isPinned,
+    );
   }
 
   @Get('count')
@@ -171,7 +179,7 @@ export class DashboardController {
   }
 
   @Patch('pin/:id')
-  @ApiOperation({ summary: 'Pin and unpin a dashboard (toggle)'})
+  @ApiOperation({ summary: 'Pin and unpin a dashboard (toggle)' })
   @ApiResponse({ type: MessageDto })
   @HttpCode(HttpStatus.OK)
   async togglePin(@Request() req, @Param('id') id: string) {

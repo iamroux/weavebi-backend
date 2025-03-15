@@ -40,7 +40,7 @@ export class UserService {
       }
       Object.assign(user, updateUserDto);
       await this.userRepo.save(user);
-      this.logger.log(`User ${userId} updated`)
+      this.logger.log(`User ${userId} updated`);
       return 'User updated successfully';
     } catch (error) {
       if (error instanceof NotFoundException) {
@@ -53,7 +53,7 @@ export class UserService {
   async remove(userId: number) {
     try {
       await this.userRepo.delete(userId);
-      this.logger.log(`User ${userId} deleted`)
+      this.logger.log(`User ${userId} deleted`);
       return 'User Deleted successfully';
     } catch (error) {
       this.logger.error(`Failed to delete user with ID ${userId}`);
