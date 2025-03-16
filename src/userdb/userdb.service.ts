@@ -205,17 +205,6 @@ private truncateLongValues(value: any): any {
     const relationships: SchemaResult['relationships'] = [];
     const valueExamples: SchemaResult['value_examples'] = {};
 
-    // Get database comment if available
-    const dbInfo = await queryRunner.query(
-      `
-    SELECT * FROM information_schema.SCHEMATA 
-    WHERE SCHEMA_NAME = ?
-  `,
-      [database],
-    );
-
-    const databaseDescription = dbInfo[0]?.SCHEMA_COMMENT || '';
-
     // Get tables
     const tableResults = await queryRunner.query(`
     SELECT table_name, table_comment
