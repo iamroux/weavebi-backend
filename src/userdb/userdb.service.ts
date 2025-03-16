@@ -165,8 +165,16 @@ export class UserdbService {
     try {
       const data = await queryRunner.query(`
       SELECT * FROM ${tableName} LIMIT ${limit}
-    `);
-      return data;
+      `);
+      
+      // Apply truncation to each value in the result
+      return data.map((row: Record<string, any>) => {
+        const truncatedRow: Record<string, any> = {};
+        for (const key in row) {
+          truncatedRow[key] = this.truncateLongValues(row[key]);
+        }
+        return truncatedRow;
+      });
     } catch (error) {
       this.logger.warn(
         `Failed to get sample data for table ${tableName}: ${error.message}`,
@@ -174,6 +182,14 @@ export class UserdbService {
       return [];
     }
   }
+
+  //helper function to truncate long values for sample data
+private truncateLongValues(value: any): any {
+  if (typeof value === 'string' && value.length > 200) {
+    return value.substring(0, 200) + '...';
+  }
+  return value;
+}
 
   // MySQL/MariaDB schema extraction
   private async extractMySQLSchema(
