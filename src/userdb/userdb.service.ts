@@ -221,7 +221,7 @@ private truncateLongValues(value: any): any {
     for (const table of tableResults) {
       const tableName = table.TABLE_NAME;
       const tableDescription =
-        table.TABLE_COMMENT || `Table storing ${tableName} data`;
+        table.TABLE_COMMENT || undefined;
 
       // Get columns
       const columns = await queryRunner.query(
@@ -283,7 +283,7 @@ private truncateLongValues(value: any): any {
       // Prepare table schema
       const tableSchema: any = {
         name: tableName,
-        description: tableDescription,
+        ...(tableDescription && {description: tableDescription}),
         columns: columns.map((col: any) => {
           const colSchema: any = {
             name: col.COLUMN_NAME,
@@ -292,7 +292,7 @@ private truncateLongValues(value: any): any {
               (col.CHARACTER_MAXIMUM_LENGTH
                 ? `(${col.CHARACTER_MAXIMUM_LENGTH})`
                 : ''),
-            description: col.COLUMN_COMMENT || `${col.COLUMN_NAME} column`,
+                ...(col.COLUMN_COMMENT && {description: col.COLUMN_COMMENT})
           };
 
           // Only add properties that are true or have values
@@ -388,7 +388,7 @@ private truncateLongValues(value: any): any {
             from_column: foreignKey[0].COLUMN_NAME,
             to_table: fk.toTable,
             to_column: foreignKey[0].REFERENCED_COLUMN_NAME,
-            description: `Relationship from ${tableName} to ${fk.toTable}`,
+            ...(foreignKey[0].CONSTRAINT_NAME && { description: `Relationship from ${tableName} to ${fk.toTable}` }),
           });
         }
       }
@@ -441,8 +441,7 @@ private truncateLongValues(value: any): any {
 
     for (const table of tableResults) {
       const tableName = table.table_name;
-      const tableDescription =
-        table.table_comment || `Table storing ${tableName} data`;
+      const tableDescription = table.table_comment || undefined;
 
       // Get columns with comments
       const columns = await queryRunner.query(
@@ -589,12 +588,12 @@ private truncateLongValues(value: any): any {
       // Prepare table schema
       const tableSchema: any = {
         name: tableName,
-        description: tableDescription,
+        ...(tableDescription && { description: tableDescription }),
         columns: columns.map((col: any) => {
           const colSchema: any = {
             name: col.column_name,
             type: this.formatPostgresType(col),
-            description: col.column_comment || `${col.column_name} column`,
+            ...(col.column_comment && { description: col.column_comment }), 
           };
 
           // Only add properties that are true or have values
@@ -707,7 +706,7 @@ private truncateLongValues(value: any): any {
             from_column: foreignKey[0].column_name,
             to_table: fk.toTable,
             to_column: foreignKey[0].referenced_column_name,
-            description: `Relationship from ${tableName} to ${fk.toTable}`,
+            ...(foreignKey[0].constraint_name && { description: `Relationship from ${tableName} to ${fk.toTable}` }), 
           });
         }
       }
@@ -744,7 +743,6 @@ private truncateLongValues(value: any): any {
   }
 
   // MSSQL schema extraction
-  // MSSQL schema extraction (continued)
   private async extractMSSQLSchema(
     queryRunner: QueryRunner,
     database: string,
@@ -781,7 +779,7 @@ private truncateLongValues(value: any): any {
     for (const table of tableResults) {
       const tableName = table.table_name;
       const tableDescription =
-        table.table_description || `Table storing ${tableName} data`;
+        table.table_description || undefined;
 
       // Get columns with extended properties for descriptions
       const columns = await queryRunner.query(
@@ -892,12 +890,12 @@ private truncateLongValues(value: any): any {
       // Prepare table schema
       const tableSchema: any = {
         name: tableName,
-        description: tableDescription,
+        ...(tableDescription && { description: tableDescription }),
         columns: columns.map((col: any) => {
           const colSchema: any = {
             name: col.column_name,
             type: this.formatMSSQLType(col),
-            description: col.column_description || `${col.column_name} column`,
+            ...(col.column_description && { description: col.column_description }),
           };
 
           // Only add properties that are true or have values
@@ -1001,7 +999,7 @@ private truncateLongValues(value: any): any {
             from_column: foreignKey[0].column_name,
             to_table: fk.toTable,
             to_column: foreignKey[0].referenced_column_name,
-            description: `Relationship from ${tableName} to ${fk.toTable}`,
+            ...(foreignKey[0].constraint_name && { description: `Relationship from ${tableName} to ${fk.toTable}` }),
           });
         }
       }
@@ -1075,7 +1073,7 @@ private truncateLongValues(value: any): any {
     for (const table of tableResults) {
       const tableName = table.TABLE_NAME;
       const tableDescription =
-        table.TABLE_COMMENT || `Table storing ${tableName} data`;
+        table.TABLE_COMMENT || undefined;
 
       // Get columns with comments
       const columns = await queryRunner.query(
@@ -1223,12 +1221,12 @@ private truncateLongValues(value: any): any {
       // Prepare table schema
       const tableSchema: any = {
         name: tableName,
-        description: tableDescription,
+        ...(tableDescription && {description: tableDescription}),
         columns: columns.map((col: any) => {
           const colSchema: any = {
             name: col.COLUMN_NAME,
             type: this.formatOracleType(col),
-            description: col.COLUMN_COMMENT || `${col.COLUMN_NAME} column`,
+            ...(col.COLUMN_COMMENT && {description: col.COLUMN_COMMENT})
           };
 
           // Only add properties that are true or have values
@@ -1343,7 +1341,7 @@ private truncateLongValues(value: any): any {
             from_column: foreignKey[0].COLUMN_NAME,
             to_table: fk.toTable,
             to_column: foreignKey[0].REFERENCED_COLUMN_NAME,
-            description: `Relationship from ${tableName} to ${fk.toTable}`,
+            ...(foreignKey[0].constraint_name && { description: `Relationship from ${tableName} to ${fk.toTable}` }),
           });
         }
       }
