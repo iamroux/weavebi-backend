@@ -654,8 +654,8 @@ export class QueryService {
         throw new NotFoundException('No queries found for this dashboard');
       }
 
-      // execute queries in parallel (simuntaneously using multip threading)
-      // basically need to runQuery on all of the queries found in the above query parallely.
+      // execute queries in parallel
+      // basically need to runQuery on all of the queries found above.
 
       const promises = queries.map((query) => this.runQuery(query.id, userId));
       const results = await Promise.all(promises);
