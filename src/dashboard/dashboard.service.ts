@@ -31,11 +31,14 @@ export class DashboardService {
       const { name, databaseId, tags = [] } = createDashboardDto;
 
       // Check if the dashboard already exists
+      const normalizedName = name.toLowerCase();
+
       const existingDashboard = await this.dashboardRepo.findOne({
-        where: { name, userId, databaseId },
+        where: { name:normalizedName, userId, databaseId },
       });
 
       if (existingDashboard) {
+        this.logger.warn(`Dashboard with name '${normalizedName}' already exists.`)
         throw new ConflictException('Dashboard with same name already exists.');
       }
 

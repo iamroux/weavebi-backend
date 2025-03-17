@@ -13,6 +13,8 @@ import {
   UpdateDateColumn,
   OneToMany,
   PrimaryColumn,
+  BeforeUpdate,
+  BeforeInsert,
 } from 'typeorm';
 
 @Entity('dashboards')
@@ -63,6 +65,14 @@ export class DashboardEntity {
     (position) => position.dashboard,
   )
   positions: DashboardQueryPositionEntity[];
+
+  @BeforeUpdate()
+  @BeforeInsert()
+  normalizeName() {
+    if(this.name){
+      this.name = this.name.toLowerCase()
+    }
+  }
 }
 
 @Entity('dashboard_query_positions')
