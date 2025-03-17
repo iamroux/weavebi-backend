@@ -53,7 +53,7 @@ export class DashboardService {
       for (const tagName of tags) {
         // Check if tag already exists, create if not
         let tag = await this.dashboardRepo.manager.findOne(TagEntity, {
-          where: { name: tagName },
+          where: { name: tagName.toLowerCase() },
         });
         if (!tag) {
           tag = this.dashboardRepo.manager.create(TagEntity, { name: tagName });

@@ -115,6 +115,14 @@ export class TagEntity {
   name: string;
   @OneToMany(() => TaggableEntity, (taggable) => taggable.tag)
   taggables: TaggableEntity[];
+
+  @BeforeInsert()
+  @BeforeUpdate()
+  normalizeName() {
+    if(this.name){
+      this.name = this.name.toLowerCase();
+    }
+  }
 }
 
 @Entity('taggable')
