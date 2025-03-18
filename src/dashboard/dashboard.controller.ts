@@ -26,6 +26,7 @@ import {
 } from '@nestjs/swagger';
 import { MessageDto } from 'src/core/dtos/generic-response.dto';
 import { UpdateDashboardQueryPositionDto } from './dto/update-dashboard-query-positions.dto';
+import { PaginationQueryDto } from 'src/core/dtos/pagination-query.dto';
 
 @Controller('dashboard')
 @UseGuards(AuthGuard)
@@ -51,40 +52,6 @@ export class DashboardController {
   @ApiProperty({})
   @ApiResponse({})
   @ApiQuery({
-    name: 'page',
-    required: false,
-    type: Number,
-    description: 'Page number for pagination',
-    default: 1,
-  })
-  @ApiQuery({
-    name: 'limit',
-    required: false,
-    type: Number,
-    description: 'Number of items per page',
-    default: 10,
-  })
-  @ApiQuery({
-    name: 'search',
-    required: false,
-    type: String,
-    description: 'Search term for dashboard name',
-  })
-  @ApiQuery({
-    name: 'sortBy',
-    required: false,
-    type: String,
-    description: 'Sort by createdAt or updatedAt',
-    enum: ['createdAt', 'updatedAt'],
-  })
-  @ApiQuery({
-    name: 'sortOrder',
-    required: false,
-    type: String,
-    description: 'Sort order asc or desc',
-    enum: ['ASC', 'DESC'],
-  })
-  @ApiQuery({
     name: 'isPinned',
     required: false,
     type: Boolean,
@@ -93,21 +60,17 @@ export class DashboardController {
   })
   async findAll(
     @Request() req,
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
-    @Query('search') search: string = '',
-    @Query('sortBy') sortBy: string = 'createdAt',
-    @Query('sortOrder') sortOrder: 'ASC' | 'DESC' = 'DESC',
+    @Query() query: PaginationQueryDto,
     @Query('isPinned') isPinned: boolean = false,
   ) {
     const userId = req.user.id;
     return this.dashboardService.findAll(
       userId,
-      page,
-      limit,
-      search,
-      sortBy,
-      sortOrder,
+      query.page ?? 1,
+      query.limit ?? 10,
+      query.search ?? '',
+      query.sortBy ?? 'createdAt',
+      query.sortOrder ?? 'DESC',
       isPinned,
     );
   }

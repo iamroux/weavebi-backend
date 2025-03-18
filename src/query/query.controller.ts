@@ -31,6 +31,7 @@ import { QueryEntity } from './entities/query.entity';
 import { LinkQueryToDashboardDto } from './dto/link-query-to-dashboard.dto';
 import { ExecuteQueryDto } from './dto/execute-query.dto';
 import { Response } from 'express';
+import { PaginationQueryDto } from 'src/core/dtos/pagination-query.dto';
 
 @Controller('query')
 @UseGuards(AuthGuard)
@@ -151,40 +152,18 @@ export class QueryController {
   @ApiOperation({ summary: 'Get all queries belonging to a database.' })
   @ApiProperty({ type: Number })
   @ApiResponse({ type: [QueryEntity] })
-  @ApiQuery({
-    name: 'page',
-    required: false,
-    type: Number,
-    description: 'Page number for pagination',
-    default: 1,
-  })
-  @ApiQuery({
-    name: 'limit',
-    required: false,
-    type: Number,
-    description: 'Number of items per page',
-    default: 10,
-  })
-  @ApiQuery({
-    name: 'search',
-    required: false,
-    type: String,
-    description: 'Search term for name or query',
-  })
   async getDatabaseQueries(
     @Param('databaseId') databaseId: number,
     @Request() req,
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
-    @Query('search') search: string = '',
+    @Query() query: PaginationQueryDto
   ) {
     const userId = req.user.id;
     return await this.queryService.getDatabaseQueries(
       databaseId,
       userId,
-      page,
-      limit,
-      search,
+      query.page ?? 1,
+      query.limit ?? 10,
+      query.search ?? '',
     );
   }
 
@@ -223,40 +202,18 @@ export class QueryController {
   @ApiOperation({ summary: 'Get all queries belonging to a dashboard.' })
   @ApiProperty({ type: Number })
   @ApiResponse({ type: [QueryEntity] })
-  @ApiQuery({
-    name: 'page',
-    required: false,
-    type: Number,
-    description: 'Page number for pagination',
-    default: 1,
-  })
-  @ApiQuery({
-    name: 'limit',
-    required: false,
-    type: Number,
-    description: 'Number of items per page',
-    default: 10,
-  })
-  @ApiQuery({
-    name: 'search',
-    required: false,
-    type: String,
-    description: 'Search term for name or query',
-  })
   async getDashboardQueries(
     @Param('dashboardId') dashboardId: number,
     @Request() req,
-    @Query('page') page: number = 1,
-    @Query('limit') limit: number = 10,
-    @Query('search') search: string = '',
+    @Query() query: PaginationQueryDto,
   ) {
     const userId = req.user.id;
     return await this.queryService.getDashboardQueries(
       dashboardId,
       userId,
-      page,
-      limit,
-      search,
+      query.page ?? 1,
+      query.limit ?? 10,
+      query.search ?? '',
     );
   }
 
