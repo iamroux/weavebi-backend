@@ -39,11 +39,11 @@ export class DashboardController {
   @ApiResponse({ type: MessageDto })
   async create(@Request() req, @Body() createDashboardDto: CreateDashboardDto) {
     const userId = req.user.id;
-    const { message } = await this.dashboardService.create(
+    const data = await this.dashboardService.create(
       userId,
       createDashboardDto,
     );
-    return { message };
+    return data;
   }
 
   @Get()

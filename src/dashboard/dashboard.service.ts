@@ -70,7 +70,7 @@ export class DashboardService {
       }
       this.logger.log(`Dashboard ${dashboard.id} created for user ${userId}`);
 
-      return { message: 'Dashboard created successfully' };
+      return {'message': 'Dashboard created successfully', 'dashboard': dashboard};
     } catch (error) {
       if (error.code === '23503') {
         throw new BadRequestException('Invalid database ID or access denied');

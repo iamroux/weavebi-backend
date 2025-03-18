@@ -95,8 +95,7 @@ and identifying a relevant theme or purpose (e.g., Sales, Human Resources, Inven
 Each query should include:
   - name-> A short, human friendly title describing the query
   - query -> A clear, detailed natural language query description that is LLM-friendly and fully comprehensive. This will be used by another LLM to generate valid SQL queries, so it must be precise and unambiguous.
-  - outputType -> The best-suited output type format based on the query (Chart.js supported output types)
-  - databaseId -> The provided databaseId value
+  - outputType -> The best-suited output type format based on the query (Chart.js supported output types).
 
 Allowed outputType values(chart.js supported) are tabular, pie chart, bar chart, line chart, doughnut chart, scatter, stacked bar chart
 

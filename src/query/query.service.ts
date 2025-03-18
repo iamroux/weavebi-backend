@@ -1005,7 +1005,7 @@ export class QueryService {
       }
 
       // step 3: create a dashboard
-      await this.dashboardService.create(userId, {
+      const createdDashboard = await this.dashboardService.create(userId, {
         name: parsedOutput.name,
         description: parsedOutput.description,
         databaseId: databaseId,
@@ -1014,8 +1014,8 @@ export class QueryService {
 
       // step 4: link queries to dashboard
       const dashboard = await this.queryRepo.query(
-        `SELECT * FROM dashboards WHERE "name" = $1;`,
-        [parsedOutput.name],
+        `SELECT * FROM dashboards WHERE "id" = $1 and "databaseId" = $2;`,
+        [createdDashboard.dashboard.id, databaseId],
       );
       const dashboardId = dashboard[0].id;
       for (const id of ids) {
