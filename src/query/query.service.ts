@@ -415,7 +415,7 @@ export class QueryService {
         outputType: createQueryDto.outputType,
         databaseId: createQueryDto.databaseId,
         userId: userId,
-        data: finalData,
+        data: outputType === 'tabular' ? JSON.stringify(finalData) : finalData, // need to convert tabular data into json object.
         generatedSqlQuery: generatedSqlQuery,
       });
 
@@ -430,10 +430,7 @@ export class QueryService {
         query: queryEntity.query,
         outputType: queryEntity.outputType,
         generatedSqlQuery: queryEntity.generatedSqlQuery,
-        data: queryEntity.data,
-        // queryEntity.outputType === 'descriptive'
-        //   ? queryEntity.data
-        //   : JSON.parse(queryEntity.data), // parse if outputType is not descriptive
+        data: queryEntity.outputType === 'descriptive' ? queryEntity.data : JSON.parse(queryEntity.data), // parse if outputType is not descriptive
         createdAt: queryEntity.createdAt,
         updatedAt: queryEntity.updatedAt,
       };
@@ -491,7 +488,7 @@ export class QueryService {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      throw new InternalServerErrorException('Failed to execute query.');
+      throw new BadRequestException(`Failed to execute query. Error: ${error.message}`);
     }
   }
 
