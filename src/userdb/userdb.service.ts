@@ -146,13 +146,15 @@ export class UserdbService {
       allForeignKeys[fromTable]?.filter((fk) => fk.toTable === toTable) || [];
     const backwardRelations =
       allForeignKeys[toTable]?.filter((fk) => fk.toTable === fromTable) || [];
-
+  
     if (forwardRelations.length > 0 && backwardRelations.length > 0) {
       return 'many_to_many';
-    } else if (forwardRelations.length > 1) {
+    } else if (forwardRelations.length > 0) {
       return 'many_to_one';
+    } else if (backwardRelations.length > 0) {
+      return 'one_to_many';
     } else {
-      return 'one_to_many'; // Default case
+      return 'many_to_one';
     }
   }
 

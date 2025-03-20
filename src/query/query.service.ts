@@ -1024,6 +1024,7 @@ export class QueryService {
       this.logger.log(`Generatd sample dashboard for user ${userId}`);
       return 'Sample dashboard generated successfully';
     } catch (error) {
+      if(error instanceof BadRequestException){throw error}
       if (
         error.constructor.name === 'APIConnectionError' ||
         error.message.includes('Connection error') ||
