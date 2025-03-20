@@ -540,7 +540,7 @@ export class QueryService {
         where: { id: queryId, userId: userId },
       });
 
-      if (!query || query.database.user.id !== userId) {
+      if (!query) {
         throw new BadRequestException('Query not found or unauthorized');
       }
 
