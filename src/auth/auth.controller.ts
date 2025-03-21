@@ -4,14 +4,16 @@ import {
   Body,
   HttpCode,
   HttpStatus,
+  BadRequestException,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
-import { ApiOperation, ApiProperty, ApiResponse } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiProperty, ApiResponse } from '@nestjs/swagger';
 import { LoginDto } from './dto/login.dto';
 import { MessageDto } from 'src/core/dtos/generic-response.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -36,6 +38,17 @@ export class AuthController {
   @ApiResponse({ type: LoginDto })
   async login(@Body() body: LoginDto) {
     return this.authService.login(body);
+  }
+
+  @Post('refresh-token')
+  @ApiOperation({ summary: 'Refresh token' })
+  @ApiBody({ type: RefreshTokenDto })
+  async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
+    const { refresh_token } = refreshTokenDto;
+    if (!refresh_token) {
+      throw new BadRequestException('Refresh token must be provided');
+    }
+    return this.authService.refreshToken(refresh_token);
   }
 
   @Post('forgot-password')

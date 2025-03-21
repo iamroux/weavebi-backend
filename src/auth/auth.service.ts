@@ -85,14 +85,57 @@ export class AuthService {
         email,
         name: user.name,
       };
-      const token = await this.jwtService.signAsync(payload);
-      this.logger.log(`Token generated for user ${user.id}`);
+
+      const accessToken = await this.jwtService.signAsync(payload, {
+        expiresIn: this.configService.get<string>('jwt.accessTokenExpiresIn'),
+      });
+  
+      const refreshToken = await this.jwtService.signAsync(payload, {
+        expiresIn: this.configService.get<string>('jwt.refreshTokenExpiresIn'),
+      });
+
+      this.logger.log(`Tokens generated for user ${user.id}`);
       return {
-        access_token: token,
+        access_token: accessToken,
+        refreshToken: refreshToken
       };
     } catch (error) {
       this.logger.error(`Login failed: ${error.message}`);
       throw error;
+    }
+  }
+
+  async refreshToken(refreshToken: string) {
+    if (!refreshToken) {
+      throw new UnauthorizedException('Refresh token must be provided');
+    }
+  
+    try {
+      // Verify the refresh token
+      const payload = await this.jwtService.verifyAsync(refreshToken, {
+        secret: this.configService.get<string>('jwt.secret'),
+      });
+  
+      // Fetch the user by ID from the payload
+      const user = await this.getUserByEmail(payload.email);
+      if (!user) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+  
+      // Generate a new access token
+      const newAccessToken = await this.jwtService.signAsync(
+        { id: user.id, email: user.email, name: user.name },
+        { expiresIn: this.configService.get<string>('jwt.accessTokenExpiresIn') },
+      );
+
+      this.logger.log(`Token refreshed for user ${user.id}`);
+  
+      return {
+        access_token: newAccessToken,
+      };
+    } catch (error) {
+      this.logger.error(`Failed to refresh token: ${error.message}`);
+      throw new UnauthorizedException('Invalid or expired refresh token');
     }
   }
 
@@ -108,7 +151,7 @@ export class AuthService {
     <table style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
       <tr>
         <td style="padding: 40px; text-align: center;">
-          <h2 style="color: #333333;">🔐 Password Reset Request</h2>
+          <h2 style="color: #333333;">🔐 WeaveBI Password Reset Request</h2>
           <p style="color: #555555; font-size: 16px;">You recently requested to reset your password. Use the OTP below to proceed:</p>
           <div style="font-size: 32px; font-weight: bold; color: #4A90E2; margin: 20px 0;">${otp}</div>
           <p style="color: #777777; font-size: 14px;">This OTP will expire in 5 minutes. If you did not request a password reset, please ignore this email.</p>
