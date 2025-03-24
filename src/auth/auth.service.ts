@@ -15,30 +15,23 @@ import * as nodemailer from 'nodemailer';
 import Redis from 'ioredis';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { MailService } from 'src/mail/mail.service';
 
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
   private readonly redisClient: Redis;
-  private readonly mailer;
 
   constructor(
     @InjectRepository(UserEntity)
     private readonly userRepo: Repository<UserEntity>,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly mailSesrvice: MailService,
   ) {
     this.redisClient = new Redis({
       host: configService.get<string>('redis.host'),
       port: configService.get<number>('redis.port'),
-    });
-
-    this.mailer = nodemailer.createTransport({
-      service: 'Gmail',
-      auth: {
-        user: configService.get<string>('mail.user'),
-        pass: configService.get<string>('mail.pass'),
-      },
     });
   }
 
@@ -145,29 +138,9 @@ export class AuthService {
 
     // Generate a random 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000);
-
-    const emailTemplate = `
-  <div style="font-family: Arial, sans-serif; line-height: 1.6; background: #f9f9f9; padding: 20px;">
-    <table style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
-      <tr>
-        <td style="padding: 40px; text-align: center;">
-          <h2 style="color: #333333;">🔐 WeaveBI Password Reset Request</h2>
-          <p style="color: #555555; font-size: 16px;">You recently requested to reset your password. Use the OTP below to proceed:</p>
-          <div style="font-size: 32px; font-weight: bold; color: #4A90E2; margin: 20px 0;">${otp}</div>
-          <p style="color: #777777; font-size: 14px;">This OTP will expire in 5 minutes. If you did not request a password reset, please ignore this email.</p>
-        </td>
-      </tr>
-    </table>
-    <p style="text-align: center; color: #999999; font-size: 12px; margin-top: 20px;">&copy; ${new Date().getFullYear()} WeaveBI. All rights reserved.</p>
-  </div>
-`;
-
     try {
-      await this.mailer.sendMail({
-        to: email,
-        subject: 'Password reset OTP',
-        html: emailTemplate,
-      });
+      await this.mailSesrvice.sendPasswordResetOtp(user.name, user.email, otp.toString())
+
       await this.redisClient.set(`otp:${email}`, otp, 'EX', 300);
       this.logger.log(`Email sent to ${email}`);
       return 'Email sent.';

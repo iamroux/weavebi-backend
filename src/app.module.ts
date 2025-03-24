@@ -8,6 +8,7 @@ import { DatabaseModule } from './core/database/database.module';
 import { UserdbModule } from './userdb/userdb.module';
 import { QueryModule } from './query/query.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { MailModule } from './mail/mail.module';
 import llmConfig from './config/llm.config';
 import appConfig from './config/app.config';
 import encryptionConfig from './config/encryption.config';
@@ -34,6 +35,7 @@ import mailConfig from './config/mail.config';
     UserdbModule,
     QueryModule,
     DashboardModule,
+    MailModule,
   ],
   controllers: [AppController],
   providers: [AppService],
