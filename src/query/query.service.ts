@@ -135,7 +135,7 @@ export class QueryService {
     database: string,
     port: number,
     provider: string,
-    sslMode: SSLMode = SSLMode.PREFER,
+    sslMode: SSLMode,
   ): Promise<any> {
     let dataSource: DataSource | null = null;
 
@@ -224,7 +224,7 @@ export class QueryService {
       const password = await this.encryptionService.decrypt(
         queryEntity.database.password,
       );
-      const { host, username, name, port, schema, provider } =
+      const { host, username, name, port, schema, provider, ssl} =
         queryEntity.database;
 
       let finalData: any;
@@ -247,6 +247,7 @@ export class QueryService {
           name,
           port,
           provider,
+          ssl as SSLMode
         );
       } else {
         // For descriptive and graphical outputs
@@ -271,6 +272,7 @@ export class QueryService {
           name,
           port,
           provider,
+          ssl as SSLMode
         );
 
         finalData = await this.processQueryResults(
@@ -355,7 +357,7 @@ export class QueryService {
       const password = await this.encryptionService.decrypt(
         database[0].password,
       );
-      const { host, username, name, port, schema, provider } = database[0];
+      const { host, username, name, port, schema, provider, ssl } = database[0];
 
       let finalData: any;
       let generatedSqlQuery: string;
@@ -376,6 +378,7 @@ export class QueryService {
           name,
           port,
           provider,
+          ssl as SSLMode
         );
       } else {
         const promptType =
@@ -399,6 +402,7 @@ export class QueryService {
           name,
           port,
           provider,
+          ssl as SSLMode
         );
 
         finalData = await this.processQueryResults(
@@ -469,7 +473,7 @@ export class QueryService {
       const password = await this.encryptionService.decrypt(
         database[0].password,
       );
-      const { host, username, name, port, provider } = database[0];
+      const { host, username, name, port, provider, ssl } = database[0];
 
       const dataFromDatabase = await this.executeSqlQuery(
         executeQueryDto.sqlQuery,
@@ -479,6 +483,7 @@ export class QueryService {
         name,
         port,
         provider,
+        ssl as SSLMode
       );
 
       return {
