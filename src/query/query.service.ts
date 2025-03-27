@@ -135,7 +135,7 @@ export class QueryService {
     database: string,
     port: number,
     provider: string,
-    sslMode: SSLMode = SSLMode.DISABLE,
+    sslMode: SSLMode = SSLMode.PREFER,
   ): Promise<any> {
     let dataSource: DataSource | null = null;
 
@@ -715,7 +715,7 @@ export class QueryService {
   async getQueryCountForDatabase(databaseId: number, userid: number) {
     try {
       const count = await this.queryRepo.count({
-        where: { userId: userid, databaseId: databaseId },
+        where: {databaseId: databaseId },
       });
       return { count: count };
     } catch (error) {
