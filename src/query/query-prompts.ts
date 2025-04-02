@@ -43,6 +43,7 @@ INPUT:
 OUTPUT GUIDELINES:
 - Return ONLY the raw SQL query without any explanations or code blocks
 - Add LIMIT 100 to all queries unless another limit is specified
+- Follow exact naming conventions of the schema (use double quotes for camelCase in PostgreSQL for example "createdAt" instead of createdat)
 - Structure the result specifically for the requested chart type:
 
 FOR SINGLE-METRIC CHARTS (pie, simple bar):
