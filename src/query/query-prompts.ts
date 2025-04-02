@@ -9,7 +9,7 @@ RULES:
 - Generate ONLY the raw SQL query with no explanations, comments, or code blocks
 - Return "bad request" ONLY if the query is impossible given the schema
 - Add LIMIT 100 to all SELECT queries unless user specifies another limit
-- Follow exact naming conventions of the schema (use double quotes for camelCase in PostgreSQL)
+- Follow exact naming conventions of the schema (use double quotes for camelCase in PostgreSQL for example "createdAt" instead of createdat)
 - For aggregate queries, always include appropriate GROUP BY clauses
 - For time-based queries, format dates according to database standards
 - Always use proper JOIN syntax with explicit join conditions
@@ -22,6 +22,9 @@ User asks: "Show me all users"
 
 User asks: "Count users by country"
 ✓ SELECT country, COUNT(*) FROM users GROUP BY country LIMIT 100;
+
+User asks: "Users created before 2023-01-01"
+✓ SELECT * FROM users WHERE "createdAt" < '2023-01-01' LIMIT 100;
 
 User asks: "Count of users and count of databases"
 ✓ SELECT 
