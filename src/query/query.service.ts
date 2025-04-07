@@ -231,7 +231,7 @@ export class QueryService {
       let generatedSqlQuery: string;
 
       // Generate SQL based on output type
-      if (outputType === 'tabular') {
+      if (outputType === 'tabular' || outputType === 'singleValue') {
         generatedSqlQuery = await this.generateSqlQuery(
           QueryPrompts.primaryPrompt,
           query,
@@ -285,7 +285,7 @@ export class QueryService {
 
       // Update and save query entity
       queryEntity.data =
-        outputType === 'tabular' ? JSON.stringify(finalData) : finalData; // need to convert tabular data into json object.
+        outputType === 'tabular' || outputType=== 'singleValue' ? JSON.stringify(finalData) : finalData; // need to convert tabular data into json object.
       queryEntity.generatedSqlQuery = generatedSqlQuery;
       await this.queryRepo.save(queryEntity);
 
@@ -362,7 +362,7 @@ export class QueryService {
       let finalData: any;
       let generatedSqlQuery: string;
 
-      if (outputType === 'tabular') {
+      if (outputType === 'tabular' || outputType === 'singleValue') {
         generatedSqlQuery = await this.generateSqlQuery(
           QueryPrompts.primaryPrompt,
           query,
@@ -419,7 +419,7 @@ export class QueryService {
         outputType: createQueryDto.outputType,
         databaseId: createQueryDto.databaseId,
         userId: userId,
-        data: outputType === 'tabular' ? JSON.stringify(finalData) : finalData, // need to convert tabular data into json object.
+        data: outputType === 'tabular' || outputType === 'singleValue' ? JSON.stringify(finalData) : finalData, // need to convert tabular data into json object.
         generatedSqlQuery: generatedSqlQuery,
       });
 
