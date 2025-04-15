@@ -25,7 +25,7 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { MessageDto } from 'src/core/dtos/generic-response.dto';
-import { UpdateDashboardQueryPositionDto } from './dto/update-dashboard-query-positions.dto';
+import {UpdateDashboardQueryPositionsDto } from './dto/update-dashboard-query-positions.dto';
 import { PaginationQueryDto } from 'src/core/dtos/pagination-query.dto';
 
 @Controller('dashboard')
@@ -121,11 +121,10 @@ export class DashboardController {
   }
 
   @Put('position')
-  @ApiOperation({ summary: 'Update query positions on dashboard' })
+  @ApiOperation({ summary: 'Update multiple query positions on dashboard' })
   @ApiResponse({ type: MessageDto })
-  @ApiProperty({ type: UpdateDashboardQueryPositionDto })
-  async updatePosition(@Body() dto: UpdateDashboardQueryPositionDto) {
-    const message = await this.dashboardService.updatePosition(dto);
+  async updatePositions(@Body() dto: UpdateDashboardQueryPositionsDto) {
+    const message = await this.dashboardService.updatePositions(dto);
     return { message };
   }
 

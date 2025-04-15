@@ -1,7 +1,6 @@
-import { IsInt, IsNotIn, IsNumber } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
-export class UpdateDashboardQueryPositionDto {
+export class DashboardQueryPositionDto {
   @ApiProperty()
   dashboardId: number;
 
@@ -19,4 +18,9 @@ export class UpdateDashboardQueryPositionDto {
 
   @ApiProperty()
   h: number;
+}
+
+export class UpdateDashboardQueryPositionsDto {
+  @ApiProperty({ type: [DashboardQueryPositionDto] })
+  positions: DashboardQueryPositionDto[];
 }

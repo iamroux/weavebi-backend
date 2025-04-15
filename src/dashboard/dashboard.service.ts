@@ -15,7 +15,7 @@ import {
   TaggableEntity,
 } from './entities/dashboard.entity';
 import { Repository } from 'typeorm';
-import { UpdateDashboardQueryPositionDto } from './dto/update-dashboard-query-positions.dto';
+import {  UpdateDashboardQueryPositionsDto } from './dto/update-dashboard-query-positions.dto';
 
 @Injectable()
 export class DashboardService {
@@ -241,54 +241,62 @@ export class DashboardService {
     }
   }
 
-  async updatePosition(dto: UpdateDashboardQueryPositionDto) {
-    const { dashboardId, queryId, x, y, z, h } = dto;
+  async updatePositions(dto: UpdateDashboardQueryPositionsDto) {
+    const { positions } = dto;
+    
     try {
-      // Check if position already exists using query builder
-      const existingPosition = await this.dashboardRepo
-        .createQueryBuilder()
-        .select('position')
-        .from('dashboard_query_positions', 'position')
-        .where('position.dashboardId = :dashboardId', { dashboardId })
-        .andWhere('position.queryId = :queryId', { queryId })
-        .getRawOne();
-
-      if (existingPosition) {
-        // Update position if it exists
-        await this.dashboardRepo
+      const results = [];
+      
+      // Process each position in the array
+      for (const position of positions) {
+        const { dashboardId, queryId, x, y, z, h } = position;
+        
+        // Check if position already exists using query builder
+        const existingPosition = await this.dashboardRepo
           .createQueryBuilder()
-          .update('dashboard_query_positions')
-          .set({ x, y, z, h })
-          .where('dashboardId = :dashboardId', { dashboardId })
-          .andWhere('queryId = :queryId', { queryId })
-          .execute();
-
-        return 'Position updated successfully';
+          .select('position')
+          .from('dashboard_query_positions', 'position')
+          .where('position.dashboardId = :dashboardId', { dashboardId })
+          .andWhere('position.queryId = :queryId', { queryId })
+          .getRawOne();
+        
+        if (existingPosition) {
+          // Update position if it exists
+          await this.dashboardRepo
+            .createQueryBuilder()
+            .update('dashboard_query_positions')
+            .set({ x, y, z, h })
+            .where('dashboardId = :dashboardId', { dashboardId })
+            .andWhere('queryId = :queryId', { queryId })
+            .execute();
+          
+        } else {
+          // Insert new position if it does not exist
+          await this.dashboardRepo
+            .createQueryBuilder()
+            .insert()
+            .into('dashboard_query_positions')
+            .values({
+              dashboardId,
+              queryId,
+              x,
+              y,
+              z,
+              h,
+            })
+            .execute();
+          
+        }
+        
+        this.logger.log(
+          `Layout for query: ${queryId} dashboard ${dashboardId} updated`,
+        );
       }
-
-      // Insert new position if it does not exist
-      await this.dashboardRepo
-        .createQueryBuilder()
-        .insert()
-        .into('dashboard_query_positions')
-        .values({
-          dashboardId,
-          queryId,
-          x,
-          y,
-          z,
-          h,
-        })
-        .execute();
-
-      this.logger.log(
-        `Layout for query:  ${queryId} dashboard ${dashboardId} updated`,
-      );
-
-      return 'Position created successfully';
+      
+      return `Successfully processed ${positions.length} position updates`;
     } catch (error) {
       throw new InternalServerErrorException(
-        `Failed to update dashboard ${dashboardId}: ${error.message}`,
+        `Failed to update dashboard positions: ${error.message}`,
       );
     }
   }
