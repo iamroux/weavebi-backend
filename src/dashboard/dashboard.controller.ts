@@ -27,6 +27,7 @@ import {
 import { MessageDto } from 'src/core/dtos/generic-response.dto';
 import {UpdateDashboardQueryPositionsDto } from './dto/update-dashboard-query-positions.dto';
 import { PaginationQueryDto } from 'src/core/dtos/pagination-query.dto';
+import { UpdateDashboardQueryColorDto } from './dto/update-dashboard-query-color.dto';
 
 @Controller('dashboard')
 @UseGuards(AuthGuard)
@@ -102,6 +103,14 @@ export class DashboardController {
     return { message };
   }
 
+  @Patch('color')
+  @ApiOperation({ summary: 'Update multiple query colors on dashboard' })
+  @ApiResponse({ type: MessageDto })
+  async updateColors(@Body() dto: UpdateDashboardQueryColorDto){
+    const message = await this.dashboardService.updateColors(dto);
+    return {message}
+  }
+
   @Patch(':id')
   @ApiOperation({ summary: 'Update a dashboard' })
   @ApiProperty({ type: UpdateDashboardDto })
@@ -127,6 +136,7 @@ export class DashboardController {
     const message = await this.dashboardService.updatePositions(dto);
     return { message };
   }
+
 
   @Get('info/:id')
   @ApiOperation({

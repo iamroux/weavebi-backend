@@ -95,6 +95,12 @@ export class DashboardQueryPositionEntity {
   @Column({ type: 'int' })
   h: number;
 
+  @Column({type: 'varchar', nullable: true})
+  chartColor: string;
+
+  @Column({type: 'varchar', nullable: true})
+  titleColor: string;
+
   @ManyToOne(() => DashboardEntity, (dashboard) => dashboard.positions, {
     onDelete: 'CASCADE',
   })

@@ -16,6 +16,7 @@ import {
 } from './entities/dashboard.entity';
 import { Repository } from 'typeorm';
 import {  UpdateDashboardQueryPositionsDto } from './dto/update-dashboard-query-positions.dto';
+import { DashboardQueryColorDto, UpdateDashboardQueryColorDto } from './dto/update-dashboard-query-color.dto';
 
 @Injectable()
 export class DashboardService {
@@ -301,6 +302,35 @@ export class DashboardService {
     }
   }
 
+  async updateColors(dto: UpdateDashboardQueryColorDto) {
+    const {colors} = dto;
+
+    try {
+      const results = [];
+
+      // Process each color in the array
+      for (const color of colors) {
+        const { dashboardId, queryId, chartColor, titleColor } = color;
+
+      // insert/update chartColor, titleColor
+      await this.dashboardRepo.createQueryBuilder()
+      .update('dashboard_query_positions')
+      .set({titleColor, chartColor})
+      .where('dashboardId = :dashboardId', {dashboardId})
+      .andWhere('queryId = :queryId', {queryId})
+      .execute();
+        this.logger.log(
+          `Colors for query: ${queryId} dashboard ${dashboardId} updated`,
+        );
+      }
+      return `Successfully updated colors`;
+    } catch (error) {
+      throw new InternalServerErrorException(
+        `Failed to update dashboard colors: ${error.message}`,
+      );
+    }
+  }
+
   async remove(userId: number, id: number) {
     try {
       await this.dashboardRepo.query(
@@ -345,17 +375,23 @@ export class DashboardService {
         return {
           ...query,
           data:
-            query.outputType === 'descriptive'
-              ? query.data
-              : JSON.parse(query.data), // parse JSON data
+        query.outputType === 'descriptive'
+          ? query.data
+          : JSON.parse(query.data), // parse JSON data
           position: position
-            ? {
-                x: position.x,
-                y: position.y,
-                z: position.z,
-                h: position.h,
-              }
-            : null,
+        ? {
+            x: position.x,
+            y: position.y,
+            z: position.z,
+            h: position.h,
+          }
+        : null,
+          colors: position
+        ? {
+            chartColor: position.chartColor,
+            titleColor: position.titleColor,
+          }
+        : null,
         };
       });
 

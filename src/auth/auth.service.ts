@@ -90,7 +90,7 @@ export class AuthService {
       this.logger.log(`Tokens generated for user ${user.id}`);
       return {
         access_token: accessToken,
-        refreshToken: refreshToken
+        refresh_token: refreshToken
       };
     } catch (error) {
       this.logger.error(`Login failed: ${error.message}`);
