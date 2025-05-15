@@ -15,8 +15,12 @@ import {
   TaggableEntity,
 } from './entities/dashboard.entity';
 import { Repository } from 'typeorm';
-import {  UpdateDashboardQueryPositionsDto } from './dto/update-dashboard-query-positions.dto';
-import { DashboardQueryColorDto, UpdateDashboardQueryColorDto } from './dto/update-dashboard-query-color.dto';
+import { UpdateDashboardQueryPositionsDto } from './dto/update-dashboard-query-positions.dto';
+import {
+  DashboardQueryColorDto,
+  UpdateDashboardQueryColorDto,
+} from './dto/update-dashboard-query-color.dto';
+import { UpdateDashboardQueryLabelDto } from './dto/update-dashboard-query-label.dto';
 
 @Injectable()
 export class DashboardService {
@@ -35,11 +39,13 @@ export class DashboardService {
       const normalizedName = name.toLowerCase();
 
       const existingDashboard = await this.dashboardRepo.findOne({
-        where: { name:normalizedName, userId, databaseId },
+        where: { name: normalizedName, userId, databaseId },
       });
 
       if (existingDashboard) {
-        this.logger.warn(`Dashboard with name '${normalizedName}' already exists.`)
+        this.logger.warn(
+          `Dashboard with name '${normalizedName}' already exists.`,
+        );
         throw new ConflictException('Dashboard with same name already exists.');
       }
 
@@ -71,7 +77,10 @@ export class DashboardService {
       }
       this.logger.log(`Dashboard ${dashboard.id} created for user ${userId}`);
 
-      return {'message': 'Dashboard created successfully', 'dashboard': dashboard};
+      return {
+        message: 'Dashboard created successfully',
+        dashboard: dashboard,
+      };
     } catch (error) {
       if (error.code === '23503') {
         throw new BadRequestException('Invalid database ID or access denied');
@@ -244,14 +253,14 @@ export class DashboardService {
 
   async updatePositions(dto: UpdateDashboardQueryPositionsDto) {
     const { positions } = dto;
-    
+
     try {
       const results = [];
-      
+
       // Process each position in the array
       for (const position of positions) {
         const { dashboardId, queryId, x, y, z, h } = position;
-        
+
         // Check if position already exists using query builder
         const existingPosition = await this.dashboardRepo
           .createQueryBuilder()
@@ -260,7 +269,7 @@ export class DashboardService {
           .where('position.dashboardId = :dashboardId', { dashboardId })
           .andWhere('position.queryId = :queryId', { queryId })
           .getRawOne();
-        
+
         if (existingPosition) {
           // Update position if it exists
           await this.dashboardRepo
@@ -270,7 +279,6 @@ export class DashboardService {
             .where('dashboardId = :dashboardId', { dashboardId })
             .andWhere('queryId = :queryId', { queryId })
             .execute();
-          
         } else {
           // Insert new position if it does not exist
           await this.dashboardRepo
@@ -286,14 +294,13 @@ export class DashboardService {
               h,
             })
             .execute();
-          
         }
-        
+
         this.logger.log(
           `Layout for query: ${queryId} dashboard ${dashboardId} updated`,
         );
       }
-      
+
       return `Successfully processed ${positions.length} position updates`;
     } catch (error) {
       throw new InternalServerErrorException(
@@ -303,7 +310,7 @@ export class DashboardService {
   }
 
   async updateColors(dto: UpdateDashboardQueryColorDto) {
-    const {colors} = dto;
+    const { colors } = dto;
 
     try {
       const results = [];
@@ -312,13 +319,14 @@ export class DashboardService {
       for (const color of colors) {
         const { dashboardId, queryId, chartColor, titleColor } = color;
 
-      // insert/update chartColor, titleColor
-      await this.dashboardRepo.createQueryBuilder()
-      .update('dashboard_query_positions')
-      .set({titleColor, chartColor})
-      .where('dashboardId = :dashboardId', {dashboardId})
-      .andWhere('queryId = :queryId', {queryId})
-      .execute();
+        // insert/update chartColor, titleColor
+        await this.dashboardRepo
+          .createQueryBuilder()
+          .update('dashboard_query_positions')
+          .set({ titleColor, chartColor })
+          .where('dashboardId = :dashboardId', { dashboardId })
+          .andWhere('queryId = :queryId', { queryId })
+          .execute();
         this.logger.log(
           `Colors for query: ${queryId} dashboard ${dashboardId} updated`,
         );
@@ -332,6 +340,12 @@ export class DashboardService {
   }
 
   async remove(userId: number, id: number) {
+    const dashboard = await this.dashboardRepo.findOne({
+      where: { id, userId },
+    });
+    if (!dashboard) {
+      throw new BadRequestException('Dashboard not found or unauthorized');
+    }
     try {
       await this.dashboardRepo.query(
         `DELETE FROM taggable WHERE "entityId" = $1 AND "entityType" = 'dashboard'`,
@@ -375,23 +389,25 @@ export class DashboardService {
         return {
           ...query,
           data:
-        query.outputType === 'descriptive'
-          ? query.data
-          : JSON.parse(query.data), // parse JSON data
+            query.outputType === 'descriptive'
+              ? query.data
+              : JSON.parse(query.data), // parse JSON data
           position: position
-        ? {
-            x: position.x,
-            y: position.y,
-            z: position.z,
-            h: position.h,
-          }
-        : null,
+            ? {
+                x: position.x,
+                y: position.y,
+                z: position.z,
+                h: position.h,
+              }
+            : null,
           colors: position
-        ? {
-            chartColor: position.chartColor,
-            titleColor: position.titleColor,
-          }
-        : null,
+            ? {
+                chartColor: position.chartColor,
+                titleColor: position.titleColor,
+              }
+            : null,
+          xAxisLabel: position ? position.xAxisLabel : null,
+          yAxisLabel: position ? position.yAxisLabel : null,
         };
       });
 
@@ -434,6 +450,49 @@ export class DashboardService {
         `Failed to update pinned status for dashboard ${id}: ${error.message}`,
       );
       throw new InternalServerErrorException("Couldn't update pinned status");
+    }
+  }
+
+  async updateQueryLabel(
+    updateDashboardQueryLabelDto: UpdateDashboardQueryLabelDto,
+    userId: number,
+  ) {
+    const dashboard = await this.dashboardRepo.findOne({
+      where: { id: updateDashboardQueryLabelDto.dashboardId },
+    });
+    const query = await this.dashboardRepo.findOne({
+      where: { queries: { id: updateDashboardQueryLabelDto.queryId } },
+    });
+    if (!dashboard || !query) {
+      throw new BadRequestException('Dashboard or query not found');
+    }
+
+    try {
+      // push new values in dashboard_query_positions table
+      await this.dashboardRepo
+        .createQueryBuilder()
+        .update('dashboard_query_positions')
+        .set({
+          xAxisLabel: updateDashboardQueryLabelDto.XAxislabel,
+          yAxisLabel: updateDashboardQueryLabelDto.YAxislabel,
+        })
+        .where('dashboardId = :dashboardId', {
+          dashboardId: updateDashboardQueryLabelDto.dashboardId,
+        })
+        .andWhere('queryId = :queryId', {
+          queryId: updateDashboardQueryLabelDto.queryId,
+        })
+        .execute();
+
+      return 'Query label updated successfully';
+    } catch (error) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
+      this.logger.error(
+        `Failed to update query label for dashboard ${updateDashboardQueryLabelDto.dashboardId}: ${error.message}`,
+      );
+      throw new InternalServerErrorException("Couldn't update query label");
     }
   }
 }

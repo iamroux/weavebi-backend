@@ -82,7 +82,7 @@ export class AuthService {
       const accessToken = await this.jwtService.signAsync(payload, {
         expiresIn: this.configService.get<string>('jwt.accessTokenExpiresIn'),
       });
-  
+
       const refreshToken = await this.jwtService.signAsync(payload, {
         expiresIn: this.configService.get<string>('jwt.refreshTokenExpiresIn'),
       });
@@ -90,7 +90,7 @@ export class AuthService {
       this.logger.log(`Tokens generated for user ${user.id}`);
       return {
         access_token: accessToken,
-        refresh_token: refreshToken
+        refresh_token: refreshToken,
       };
     } catch (error) {
       this.logger.error(`Login failed: ${error.message}`);
@@ -102,27 +102,29 @@ export class AuthService {
     if (!refreshToken) {
       throw new UnauthorizedException('Refresh token must be provided');
     }
-  
+
     try {
       // Verify the refresh token
       const payload = await this.jwtService.verifyAsync(refreshToken, {
         secret: this.configService.get<string>('jwt.secret'),
       });
-  
+
       // Fetch the user by ID from the payload
       const user = await this.getUserByEmail(payload.email);
       if (!user) {
         throw new UnauthorizedException('Invalid refresh token');
       }
-  
+
       // Generate a new access token
       const newAccessToken = await this.jwtService.signAsync(
         { id: user.id, email: user.email, name: user.name },
-        { expiresIn: this.configService.get<string>('jwt.accessTokenExpiresIn') },
+        {
+          expiresIn: this.configService.get<string>('jwt.accessTokenExpiresIn'),
+        },
       );
 
       this.logger.log(`Token refreshed for user ${user.id}`);
-  
+
       return {
         access_token: newAccessToken,
       };
@@ -139,7 +141,11 @@ export class AuthService {
     // Generate a random 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000);
     try {
-      await this.mailSesrvice.sendPasswordResetOtp(user.name, user.email, otp.toString())
+      await this.mailSesrvice.sendPasswordResetOtp(
+        user.name,
+        user.email,
+        otp.toString(),
+      );
 
       await this.redisClient.set(`otp:${email}`, otp, 'EX', 300);
       this.logger.log(`Email sent to ${email}`);

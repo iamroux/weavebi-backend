@@ -65,10 +65,7 @@ export class UserdbController {
   @Get()
   @ApiOperation({ summary: 'Get all database connections' })
   @ApiResponse({ type: [CreateUserdbDto] })
-  async findAll(
-    @Request() req,
-    @Query() query: PaginationQueryDto
-  ) {
+  async findAll(@Request() req, @Query() query: PaginationQueryDto) {
     const userId = req.user.id;
     return this.userdbService.findAll(
       userId,

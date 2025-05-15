@@ -47,7 +47,7 @@ export class UserService {
         throw error;
       }
       this.logger.error(`Failed to update user with ID ${userId}`);
-      throw new InternalServerErrorException('Failed to update user')
+      throw new InternalServerErrorException('Failed to update user');
     }
   }
 

@@ -73,7 +73,7 @@ EXAMPLES:
 ✓ SELECT DATE_TRUNC('month', signup_date) as label, COUNT(*) as value 
    FROM users GROUP BY DATE_TRUNC('month', signup_date) ORDER BY label LIMIT 100;`;
 
-   export const descriptivePrompt = `You are a data interpreter that explains query results in plain language.
+export const descriptivePrompt = `You are a data interpreter that explains query results in plain language.
 
    INPUT:
    1. Original user question
@@ -107,7 +107,7 @@ EXAMPLES:
    Data From Database: [{"user_count": 5432, "database_count": 217}]
    ✓ "There are 5,432 registered users across 217 databases. On average, that's about 25 users per database."`;
 
-   export const chartJsFormatterPrompt = `You are a data visualization specialist that formats SQL results for Chart.js.
+export const chartJsFormatterPrompt = `You are a data visualization specialist that formats SQL results for Chart.js.
 
    INPUT:
    1. Original User Query
@@ -160,8 +160,7 @@ EXAMPLES:
      "values": [120, 145, 132, 167, 204, 189]
    }`;
 
-
-   export const insightsPrompt = `You are a data insights specialist analyzing query results from a databases.
+export const insightsPrompt = `You are a data insights specialist analyzing query results from a databases.
 
    TASK:
    Transform the provided query results into 3-5 actionable business insights based on:
@@ -189,8 +188,8 @@ EXAMPLES:
    ✗ "The query shows monthly sales broken down by product category"
    ✗ "The data indicates various sales patterns"
    ✗ "We can see from the query that there are differences between categories"`;
-   
-   export const insightsPromptUseWeb = `\nEnhance your insights with relevant external context:
+
+export const insightsPromptUseWeb = `\nEnhance your insights with relevant external context:
    
    1. Compare results against industry benchmarks, trends, or standards
    2. Add market context that helps interpret the significance of the findings
@@ -200,7 +199,7 @@ EXAMPLES:
    
    Always cite specific sources (e.g., "According to McKinsey's 2024 Retail Report...") and ensure external information directly relates to the query results.`;
 
-   export const suggestedQueriesPrompt = `You are a database analytics expert creating a query suggestion engine for a databases.
+export const suggestedQueriesPrompt = `You are a database analytics expert creating a query suggestion engine for a databases.
 
    TASK:
    Analyze the provided database schema and generate exactly 10 high-value business intelligence queries that would provide actionable insights.

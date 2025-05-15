@@ -155,7 +155,7 @@ export class QueryController {
   async getDatabaseQueries(
     @Param('databaseId') databaseId: number,
     @Request() req,
-    @Query() query: PaginationQueryDto
+    @Query() query: PaginationQueryDto,
   ) {
     const userId = req.user.id;
     return await this.queryService.getDatabaseQueries(
@@ -248,7 +248,7 @@ export class QueryController {
   //   return await this.queryService.generateMappings();
   // }
 
-  @Get('insights/:queryId')
+  @Get('insights/:id')
   @ApiOperation({ summary: 'Get insights for a query.' })
   @ApiProperty({ type: Number })
   @ApiResponse({ type: [QueryEntity] })
