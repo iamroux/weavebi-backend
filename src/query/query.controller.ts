@@ -167,7 +167,7 @@ export class QueryController {
     );
   }
 
-  @Get('count-database')
+  @Get('count-database/:databaseId')
   @ApiOperation({ summary: 'Get count of queries belonging to a database' })
   @ApiProperty({ type: Number })
   @ApiResponse({ type: Number })
@@ -179,7 +179,7 @@ export class QueryController {
     return await this.queryService.getQueryCountForDatabase(databaseId, userId);
   }
 
-  @Get('count-dashboard')
+  @Get('count-dashboard/:dashboardId')
   @ApiOperation({ summary: 'Get count of queries belonging to a dashboard' })
   @ApiProperty({ type: Number })
   @ApiResponse({ type: Number })
