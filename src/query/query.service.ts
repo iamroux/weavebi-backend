@@ -720,7 +720,7 @@ export class QueryService {
   async getQueryCountForDatabase(databaseId: number, userid: number) {
     try {
       const count = await this.queryRepo.count({
-        where: {databaseId: databaseId },
+        where: {databaseId: databaseId, userId: userid},
       });
       return { count: count };
     } catch (error) {
@@ -736,7 +736,7 @@ export class QueryService {
   ): Promise<{ count: number }> {
     try {
       const result = await this.queryRepo.query(
-        'SELECT COUNT(*)::int AS count FROM dashboard_query',
+        'SELECT COUNT(*)::int AS count FROM dashboard_query WHERE "dashboardId" = $1', [dashboardId]
       );
 
       return { count: result[0]?.count ?? 0 };
