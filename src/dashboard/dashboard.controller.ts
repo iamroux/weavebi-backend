@@ -25,9 +25,10 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { MessageDto } from 'src/core/dtos/generic-response.dto';
-import {UpdateDashboardQueryPositionsDto } from './dto/update-dashboard-query-positions.dto';
+import { UpdateDashboardQueryPositionsDto } from './dto/update-dashboard-query-positions.dto';
 import { PaginationQueryDto } from 'src/core/dtos/pagination-query.dto';
 import { UpdateDashboardQueryColorDto } from './dto/update-dashboard-query-color.dto';
+import { UpdateDashboardQueryLabelDto } from './dto/update-dashboard-query-label.dto';
 
 @Controller('dashboard')
 @UseGuards(AuthGuard)
@@ -41,10 +42,7 @@ export class DashboardController {
   @ApiResponse({ type: MessageDto })
   async create(@Request() req, @Body() createDashboardDto: CreateDashboardDto) {
     const userId = req.user.id;
-    const data = await this.dashboardService.create(
-      userId,
-      createDashboardDto,
-    );
+    const data = await this.dashboardService.create(userId, createDashboardDto);
     return data;
   }
 
@@ -103,12 +101,28 @@ export class DashboardController {
     return { message };
   }
 
+  @Patch('query-label')
+  @ApiOperation({ summary: 'Update query label on dashboard' })
+  @ApiResponse({ type: MessageDto })
+  async updateQueryLabel(
+    @Body() updateDashboardQueryLabelDto: UpdateDashboardQueryLabelDto,
+    @Request() req,
+  ) {
+    console.log('updateDashboardQueryLabelDto', updateDashboardQueryLabelDto);
+    const userId = req.user.id;
+    const message = await this.dashboardService.updateQueryLabel(
+      updateDashboardQueryLabelDto,
+      userId,
+    );
+    return { message };
+  }
+
   @Patch('color')
   @ApiOperation({ summary: 'Update multiple query colors on dashboard' })
   @ApiResponse({ type: MessageDto })
-  async updateColors(@Body() dto: UpdateDashboardQueryColorDto){
+  async updateColors(@Body() dto: UpdateDashboardQueryColorDto) {
     const message = await this.dashboardService.updateColors(dto);
-    return {message}
+    return { message };
   }
 
   @Patch(':id')
@@ -136,7 +150,6 @@ export class DashboardController {
     const message = await this.dashboardService.updatePositions(dto);
     return { message };
   }
-
 
   @Get('info/:id')
   @ApiOperation({

@@ -224,7 +224,7 @@ export class QueryService {
       const password = await this.encryptionService.decrypt(
         queryEntity.database.password,
       );
-      const { host, username, name, port, schema, provider, ssl} =
+      const { host, username, name, port, schema, provider, ssl } =
         queryEntity.database;
 
       let finalData: any;
@@ -247,7 +247,7 @@ export class QueryService {
           name,
           port,
           provider,
-          ssl as SSLMode
+          ssl,
         );
       } else {
         // For descriptive and graphical outputs
@@ -272,7 +272,7 @@ export class QueryService {
           name,
           port,
           provider,
-          ssl as SSLMode
+          ssl,
         );
 
         finalData = await this.processQueryResults(
@@ -285,7 +285,9 @@ export class QueryService {
 
       // Update and save query entity
       queryEntity.data =
-        outputType === 'tabular' || outputType=== 'singleValue' ? JSON.stringify(finalData) : finalData; // need to convert tabular data into json object.
+        outputType === 'tabular' || outputType === 'singleValue'
+          ? JSON.stringify(finalData)
+          : finalData; // need to convert tabular data into json object.
       queryEntity.generatedSqlQuery = generatedSqlQuery;
       await this.queryRepo.save(queryEntity);
 
@@ -378,7 +380,7 @@ export class QueryService {
           name,
           port,
           provider,
-          ssl as SSLMode
+          ssl as SSLMode,
         );
       } else {
         const promptType =
@@ -402,7 +404,7 @@ export class QueryService {
           name,
           port,
           provider,
-          ssl as SSLMode
+          ssl as SSLMode,
         );
 
         finalData = await this.processQueryResults(
@@ -419,7 +421,10 @@ export class QueryService {
         outputType: createQueryDto.outputType,
         databaseId: createQueryDto.databaseId,
         userId: userId,
-        data: outputType === 'tabular' || outputType === 'singleValue' ? JSON.stringify(finalData) : finalData, // need to convert tabular data into json object.
+        data:
+          outputType === 'tabular' || outputType === 'singleValue'
+            ? JSON.stringify(finalData)
+            : finalData, // need to convert tabular data into json object.
         generatedSqlQuery: generatedSqlQuery,
       });
 
@@ -434,7 +439,10 @@ export class QueryService {
         query: queryEntity.query,
         outputType: queryEntity.outputType,
         generatedSqlQuery: queryEntity.generatedSqlQuery,
-        data: queryEntity.outputType === 'descriptive' ? queryEntity.data : JSON.parse(queryEntity.data), // parse if outputType is not descriptive
+        data:
+          queryEntity.outputType === 'descriptive'
+            ? queryEntity.data
+            : JSON.parse(queryEntity.data), // parse if outputType is not descriptive
         createdAt: queryEntity.createdAt,
         updatedAt: queryEntity.updatedAt,
       };
@@ -483,7 +491,7 @@ export class QueryService {
         name,
         port,
         provider,
-        ssl as SSLMode
+        ssl as SSLMode,
       );
 
       return {
@@ -493,11 +501,19 @@ export class QueryService {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      throw new BadRequestException(`Failed to execute query. Error: ${error.message}`);
+      throw new BadRequestException(
+        `Failed to execute query. Error: ${error.message}`,
+      );
     }
   }
 
   async create(userId: number, createQueryDto: CreateQueryDto) {
+    const database = await this.queryRepo.findOne({
+      where: { userId: userId },
+    });
+    if (!database) {
+      throw new NotFoundException('Database not found');
+    }
     try {
       const existingQuery = await this.queryRepo.findOne({
         where: {
@@ -524,6 +540,9 @@ export class QueryService {
       return query;
     } catch (error) {
       if (error instanceof ConflictException) {
+        throw error;
+      }
+      if (error instanceof NotFoundException) {
         throw error;
       }
       this.logger.error(
@@ -720,7 +739,7 @@ export class QueryService {
   async getQueryCountForDatabase(databaseId: number, userid: number) {
     try {
       const count = await this.queryRepo.count({
-        where: {databaseId: databaseId, userId: userid},
+        where: { databaseId: databaseId, userId: userid },
       });
       return { count: count };
     } catch (error) {
@@ -736,7 +755,8 @@ export class QueryService {
   ): Promise<{ count: number }> {
     try {
       const result = await this.queryRepo.query(
-        'SELECT COUNT(*)::int AS count FROM dashboard_query WHERE "dashboardId" = $1', [dashboardId]
+        'SELECT COUNT(*)::int AS count FROM dashboard_query WHERE "dashboardId" = $1',
+        [dashboardId],
       );
 
       return { count: result[0]?.count ?? 0 };
@@ -1029,7 +1049,9 @@ export class QueryService {
       this.logger.log(`Generatd sample dashboard for user ${userId}`);
       return 'Sample dashboard generated successfully';
     } catch (error) {
-      if(error instanceof BadRequestException){throw error}
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
       if (
         error.constructor.name === 'APIConnectionError' ||
         error.message.includes('Connection error') ||
@@ -1099,7 +1121,7 @@ export class QueryService {
       const data = query.data;
       const parsedData = JSON.parse(data);
 
-      let converter = require('json-2-csv');
+      const converter = require('json-2-csv');
       const csv = await converter.json2csv(parsedData);
       this.logger.log(`Generated CSV data for qurey ${queryId}`);
 

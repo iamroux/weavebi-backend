@@ -8,7 +8,12 @@ import {
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { CreateAuthDto } from './dto/create-auth.dto';
-import { ApiBody, ApiOperation, ApiProperty, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiBody,
+  ApiOperation,
+  ApiProperty,
+  ApiResponse,
+} from '@nestjs/swagger';
 import { LoginDto } from './dto/login.dto';
 import { MessageDto } from 'src/core/dtos/generic-response.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';

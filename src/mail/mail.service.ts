@@ -20,19 +20,32 @@ export class MailService {
     });
   }
 
-  private async compileTemplate(templateName: string, context: any): Promise<string> {
+  private async compileTemplate(
+    templateName: string,
+    context: any,
+  ): Promise<string> {
     try {
-      const templatePath = path.join(__dirname, 'templates', `${templateName}.hbs`);
+      const templatePath = path.join(
+        __dirname,
+        'templates',
+        `${templateName}.hbs`,
+      );
       const template = fs.readFileSync(templatePath, 'utf8');
       const compiledTemplate = handlebars.compile(template);
       return compiledTemplate(context);
     } catch (error) {
-      this.logger.error(`Failed to compile template ${templateName}: ${error.message}`);
+      this.logger.error(
+        `Failed to compile template ${templateName}: ${error.message}`,
+      );
       throw new Error(`Template compilation failed`);
     }
   }
 
-  async sendPasswordResetOtp(name:string, email: string, otp: string): Promise<void> {
+  async sendPasswordResetOtp(
+    name: string,
+    email: string,
+    otp: string,
+  ): Promise<void> {
     const html = await this.compileTemplate('password-reset-otp', {
       name,
       email,
@@ -45,7 +58,5 @@ export class MailService {
       subject: 'Password Reset OTP',
       html,
     });
-} 
-
-  
+  }
 }

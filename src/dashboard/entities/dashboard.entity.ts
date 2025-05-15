@@ -69,8 +69,8 @@ export class DashboardEntity {
   @BeforeUpdate()
   @BeforeInsert()
   normalizeName() {
-    if(this.name){
-      this.name = this.name.toLowerCase()
+    if (this.name) {
+      this.name = this.name.toLowerCase();
     }
   }
 }
@@ -95,11 +95,17 @@ export class DashboardQueryPositionEntity {
   @Column({ type: 'int' })
   h: number;
 
-  @Column({type: 'varchar', nullable: true})
+  @Column({ type: 'varchar', nullable: true })
   chartColor: string;
 
-  @Column({type: 'varchar', nullable: true})
+  @Column({ type: 'varchar', nullable: true })
   titleColor: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  xAxisLabel: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  yAxisLabel: string;
 
   @ManyToOne(() => DashboardEntity, (dashboard) => dashboard.positions, {
     onDelete: 'CASCADE',
@@ -125,7 +131,7 @@ export class TagEntity {
   @BeforeInsert()
   @BeforeUpdate()
   normalizeName() {
-    if(this.name){
+    if (this.name) {
       this.name = this.name.toLowerCase();
     }
   }

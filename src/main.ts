@@ -9,7 +9,7 @@ async function bootstrap() {
     cors: {
       origin: '*',
       methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-      credentials: false, 
+      credentials: false,
     },
     bodyParser: true,
   });
