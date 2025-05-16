@@ -98,7 +98,7 @@ export class DashboardQueryPositionEntity {
   @Column({ type: 'varchar', nullable: true })
   chartColor: string;
 
-  @Column({ type: 'varchar', nullable: true })
+  @Column({ type: 'varchar', nullable: true, default: '#000000' })
   titleColor: string;
 
   @Column({ type: 'varchar', nullable: true })
