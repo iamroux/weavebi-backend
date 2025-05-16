@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsInt } from 'class-validator';
+import { IsInt, IsOptional } from 'class-validator';
 
 export class DashboardQueryColorDto {
   @ApiProperty({ type: 'number' })
@@ -14,7 +14,8 @@ export class DashboardQueryColorDto {
   queryId: number;
 
   @ApiProperty({ type: 'string', example: '#FFFFFF' })
-  titleColor: string;
+  @IsOptional()
+  titleColor?: string;
 
   @ApiProperty({ type: 'string', example: '#FFFFFF' })
   chartColor: string;
