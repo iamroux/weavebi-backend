@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { SSLMode } from 'src/userdb/entities/userdb.entity';
+import { SSLMode } from './global-enums';
 
 // helper function to add ssl config
 export function getSSLConfig(sslMode: SSLMode) {

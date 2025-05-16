@@ -32,7 +32,6 @@ export class DashboardService {
   ) {}
 
   async create(userId: number, createDashboardDto: CreateDashboardDto) {
-    try {
       const { name, databaseId, tags = [] } = createDashboardDto;
 
       // Check if the dashboard already exists
@@ -47,6 +46,17 @@ export class DashboardService {
           `Dashboard with name '${normalizedName}' already exists.`,
         );
         throw new ConflictException('Dashboard with same name already exists.');
+      }
+
+      // check if databaseId is valid
+      const database = await this.dashboardRepo.findOne({
+        where: {databaseId: createDashboardDto.databaseId, userId: userId},
+      })
+      if (!database) {
+        this.logger.warn(
+          `Database with id '${createDashboardDto.databaseId}' not found.`,
+        );
+        throw new BadRequestException('Database not found');
       }
 
       // Create the dashboard
@@ -81,31 +91,12 @@ export class DashboardService {
         message: 'Dashboard created successfully',
         dashboard: dashboard,
       };
-    } catch (error) {
-      if (error.code === '23503') {
-        throw new BadRequestException('Invalid database ID or access denied');
-      }
-      if (error instanceof ConflictException) {
-        throw error;
-      }
-      this.logger.error(`Error creating dashboard: ${error.message}`);
-      throw new InternalServerErrorException('Failed to create dashboard');
     }
-  }
 
   async getCount(userId: number): Promise<{ count: number }> {
-    try {
       const count = await this.dashboardRepo.count({ where: { userId } });
       return { count };
-    } catch (error) {
-      this.logger.error(
-        `Failed to retrieve database count for user ${userId}: ${error.message}`,
-      );
-      throw new InternalServerErrorException(
-        'Failed to retrieve database count',
-      );
-    }
-  }
+    } 
 
   async findAll(
     userId: number,
@@ -116,7 +107,7 @@ export class DashboardService {
     sortOrder: 'ASC' | 'DESC' = 'DESC',
     isPinned: boolean = false,
   ) {
-    try {
+  
       const offset = (page - 1) * limit;
 
       const queryBuilder = this.dashboardRepo
@@ -168,14 +159,10 @@ export class DashboardService {
       });
 
       return { dashboards: dashboardsWithTags, count };
-    } catch (error) {
-      this.logger.error(`Error fetching dashboards: ${error.message}`);
-      throw new InternalServerErrorException("Couldn't fetch dashboards");
-    }
-  }
+    } 
 
   async findOne(id: number, userId: number) {
-    try {
+  
       const dashboard = await this.dashboardRepo
         .createQueryBuilder('dashboard')
         .leftJoinAndMapMany(
@@ -204,18 +191,14 @@ export class DashboardService {
       // Extract and map tags
       const tags = (dashboard as any).tags?.map((t) => t.tag?.name) || [];
       return { ...dashboard, tags };
-    } catch (error) {
-      this.logger.error(`Error fetching dashboard: ${error.message}`);
-      throw new InternalServerErrorException("Couldn't fetch dashboard");
-    }
-  }
+    } 
 
   async update(
     userId: number,
     id: number,
     updateDashboardDto: UpdateDashboardDto,
   ) {
-    try {
+ 
       // Check if the dashboard exists and belongs to the user
       const existingDashboard = await this.dashboardRepo
         .createQueryBuilder('dashboard')
@@ -239,22 +222,12 @@ export class DashboardService {
         `Dashobard ${updatedDashboard.id} updated for user ${userId}`,
       );
       return { message: 'Dashboard updated successfully', updatedDashboard };
-    } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      this.logger.error(`Failed to update dashboard ${id}: ${error.message}`);
-      throw new InternalServerErrorException("Couldn't update dashboard");
     }
-  }
 
   async updatePositions(dto: UpdateDashboardQueryPositionsDto) {
     const { positions } = dto;
 
-    try {
+
       const results = [];
 
       // Process each position in the array
@@ -302,17 +275,12 @@ export class DashboardService {
       }
 
       return `Successfully processed ${positions.length} position updates`;
-    } catch (error) {
-      throw new InternalServerErrorException(
-        `Failed to update dashboard positions: ${error.message}`,
-      );
-    }
-  }
+    } 
 
   async updateColors(dto: UpdateDashboardQueryColorDto) {
     const { colors } = dto;
 
-    try {
+  
       const results = [];
 
       // Process each color in the array
@@ -332,12 +300,7 @@ export class DashboardService {
         );
       }
       return `Successfully updated colors`;
-    } catch (error) {
-      throw new InternalServerErrorException(
-        `Failed to update dashboard colors: ${error.message}`,
-      );
-    }
-  }
+    } 
 
   async remove(userId: number, id: number) {
     const dashboard = await this.dashboardRepo.findOne({
@@ -346,7 +309,6 @@ export class DashboardService {
     if (!dashboard) {
       throw new BadRequestException('Dashboard not found or unauthorized');
     }
-    try {
       await this.dashboardRepo.query(
         `DELETE FROM taggable WHERE "entityId" = $1 AND "entityType" = 'dashboard'`,
         [id],
@@ -359,18 +321,10 @@ export class DashboardService {
       this.logger.log(`Dashboard ${id} deleted  for user ${userId}`);
 
       return 'Dashboard deleted successfully';
-    } catch (error) {
-      this.logger.error(`Failed to delete dashboard ${id}: ${error.message}`);
-
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      throw new InternalServerErrorException("Couldn't delete dashboard");
     }
-  }
 
   async getDashboardInfo(id: number, userId: number) {
-    try {
+ 
       const dashboard = await this.dashboardRepo.findOne({
         where: { id, userId },
         relations: ['queries', 'positions', 'positions.query'],
@@ -421,17 +375,10 @@ export class DashboardService {
         userId: dashboard.userId,
         queries: queriesWithPositions,
       };
-    } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      this.logger.error(`Failed to fetch dashboard ${id}: ${error.message}`);
-      throw new InternalServerErrorException("Couldn't fetch dashboard");
-    }
-  }
+    } 
 
   async togglePin(id: number, userId: number) {
-    try {
+
       const dashboard = await this.dashboardRepo.findOne({
         where: { id, userId },
       });
@@ -442,32 +389,21 @@ export class DashboardService {
       dashboard.isPinned = !dashboard.isPinned;
       await this.dashboardRepo.save(dashboard);
       return `Dashboard ${dashboard.isPinned ? 'pinned' : 'unpinned'} successfully`;
-    } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      this.logger.error(
-        `Failed to update pinned status for dashboard ${id}: ${error.message}`,
-      );
-      throw new InternalServerErrorException("Couldn't update pinned status");
-    }
-  }
+    } 
 
   async updateQueryLabel(
     updateDashboardQueryLabelDto: UpdateDashboardQueryLabelDto,
     userId: number,
   ) {
     const dashboard = await this.dashboardRepo.findOne({
-      where: { id: updateDashboardQueryLabelDto.dashboardId },
+      where: { id: updateDashboardQueryLabelDto.dashboardId, userId },
     });
     const query = await this.dashboardRepo.findOne({
-      where: { queries: { id: updateDashboardQueryLabelDto.queryId } },
+      where: { queries: { id: updateDashboardQueryLabelDto.queryId, userId } },
     });
     if (!dashboard || !query) {
       throw new BadRequestException('Dashboard or query not found');
     }
-
-    try {
       // push new values in dashboard_query_positions table
       await this.dashboardRepo
         .createQueryBuilder()
@@ -485,14 +421,5 @@ export class DashboardService {
         .execute();
 
       return 'Query label updated successfully';
-    } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      this.logger.error(
-        `Failed to update query label for dashboard ${updateDashboardQueryLabelDto.dashboardId}: ${error.message}`,
-      );
-      throw new InternalServerErrorException("Couldn't update query label");
-    }
-  }
+    } 
 }

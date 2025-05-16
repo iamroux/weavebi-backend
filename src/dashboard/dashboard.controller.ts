@@ -108,7 +108,6 @@ export class DashboardController {
     @Body() updateDashboardQueryLabelDto: UpdateDashboardQueryLabelDto,
     @Request() req,
   ) {
-    console.log('updateDashboardQueryLabelDto', updateDashboardQueryLabelDto);
     const userId = req.user.id;
     const message = await this.dashboardService.updateQueryLabel(
       updateDashboardQueryLabelDto,

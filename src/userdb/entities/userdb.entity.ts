@@ -14,12 +14,8 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { EncryptionService } from 'src/query/encryption.service';
+import { SSLMode } from 'src/common/global-enums';
 
-export enum SSLMode {
-  DISABLE = 'DISABLE',
-  PREFER = 'PREFER',
-  REQUIRE = 'REQUIRE',
-}
 
 @Entity('databases')
 export class UserdbEntity {

@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { CreateUserdbDto } from './dto/create-userdb.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { SSLMode, UserdbEntity } from './entities/userdb.entity';
+import { UserdbEntity } from './entities/userdb.entity';
 import {
   DataSource,
   DataSourceOptions,
@@ -16,6 +16,7 @@ import {
 } from 'typeorm';
 import { UpdateUserdbDto } from './dto/update-userdb.dto';
 import { getSSLConfig, mapProviderToTypeORM } from 'src/common/database-utils';
+import { SSLMode } from 'src/common/global-enums';
 
 interface SchemaResult {
   database_name: string;
@@ -1438,15 +1439,11 @@ export class UserdbService {
         where: {
           userId: userId,
           name: createUserdbDto.name,
-          provider: createUserdbDto.provider,
-          host: createUserdbDto.host,
-          port: createUserdbDto.port,
-          username: createUserdbDto.username,
         },
       });
 
       if (existingDatabase) {
-        throw new ConflictException('Database already exists');
+        throw new ConflictException('Database with same name already exists');
       }
 
       // Get the schema of the database
@@ -1523,7 +1520,6 @@ export class UserdbService {
     sortBy: string = 'createdAt',
     sortOrder: 'ASC' | 'DESC' = 'DESC',
   ) {
-    try {
       const queryBuilder = this.userDbRepo
         .createQueryBuilder('userdb')
         .where('userdb.userId = :userId', { userId });
@@ -1563,12 +1559,6 @@ export class UserdbService {
         .getManyAndCount();
 
       return { databases, count };
-    } catch (error) {
-      this.logger.error(
-        `Failed to retrieve user ${userId}'s databases: ${error.message}`,
-      );
-      throw new InternalServerErrorException('Failed to retrieve databases');
-    }
   }
 
   async test(userId: number, createUserdbDto: CreateUserdbDto) {
@@ -1658,7 +1648,6 @@ export class UserdbService {
   }
 
   async getCount(userId: number) {
-    try {
       const result = await this.userDbRepo.query(
         `
         SELECT
@@ -1686,18 +1675,9 @@ export class UserdbService {
         activeCount: parsedActiveCount,
         inactiveCount: parsedTotalCount - parsedActiveCount,
       };
-    } catch (error) {
-      this.logger.error(
-        `Failed to retrieve database count for user ${userId}: ${error.message}`,
-      );
-      throw new InternalServerErrorException(
-        'Failed to retrieve database count',
-      );
-    }
   }
 
   async update(userId: number, id: number, updateUserdbDto: UpdateUserdbDto) {
-    try {
       const existingDatabase = await this.userDbRepo.findOne({
         where: {
           id: id,
@@ -1707,6 +1687,23 @@ export class UserdbService {
 
       if (!existingDatabase) {
         throw new BadRequestException('Database not found');
+      }
+
+      // Check if the database name is being changed to an existing one
+      if (
+        updateUserdbDto.name &&
+        updateUserdbDto.name !== existingDatabase.name
+      ) {
+        const existingName = await this.userDbRepo.findOne({
+          where: {
+            name: updateUserdbDto.name,
+            userId: userId,
+          },
+        });
+
+        if (existingName) {
+          throw new ConflictException('Database with same name already exists');
+        }
       }
 
       // Get the schema of the database
@@ -1729,19 +1726,10 @@ export class UserdbService {
       await this.userDbRepo.save(updatedDatabase);
       this.logger.log(`Database ${id} for user ${userId} updated`);
       return 'Database updated successfully';
-    } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      this.logger.error(
-        `Failed to update user ${userId}'s database: ${error.message}`,
-      );
-      throw new InternalServerErrorException('Failed to update database');
-    }
-  }
+    } 
+
 
   async findOne(userId: number, id: number) {
-    try {
       const database = await this.userDbRepo.findOne({
         where: {
           id: id,
@@ -1766,21 +1754,10 @@ export class UserdbService {
       if (!database) {
         throw new BadRequestException('Database not found');
       }
-
       return database;
-    } catch (error) {
-      this.logger.error(
-        `Failed to retrieve user ${userId}'s database: ${error.message}`,
-      );
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      throw new InternalServerErrorException('Failed to retrieve database');
-    }
-  }
+    } 
 
   async remove(userId: number, id: number) {
-    try {
       const database = await this.userDbRepo.findOne({
         where: {
           id: id,
@@ -1795,14 +1772,5 @@ export class UserdbService {
       await this.userDbRepo.remove(database);
       this.logger.log(`Database ${id} for user ${userId} deleted`);
       return 'Database deleted successfully';
-    } catch (error) {
-      this.logger.error(
-        `Failed to delete user ${userId}'s database: ${error.message}`,
-      );
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      throw new InternalServerErrorException('Failed to delete database');
-    }
   }
 }

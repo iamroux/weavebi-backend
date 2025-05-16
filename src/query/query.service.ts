@@ -20,7 +20,7 @@ import { EncryptionService } from './encryption.service';
 import { ExecuteQueryDto } from './dto/execute-query.dto';
 import { DashboardService } from 'src/dashboard/dashboard.service';
 import { getSSLConfig, mapProviderToTypeORM } from 'src/common/database-utils';
-import { SSLMode } from 'src/userdb/entities/userdb.entity';
+import { SSLMode } from 'src/common/global-enums';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -514,7 +514,6 @@ export class QueryService {
     if (!database) {
       throw new NotFoundException('Database not found');
     }
-    try {
       const existingQuery = await this.queryRepo.findOne({
         where: {
           name: createQueryDto.name,
@@ -538,20 +537,6 @@ export class QueryService {
       this.logger.log(`Query ${query.id} for user ${userId} saved`);
 
       return query;
-    } catch (error) {
-      if (error instanceof ConflictException) {
-        throw error;
-      }
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      this.logger.error(
-        `Failed to save query for user ${userId} to our database: ${error.message}`,
-      );
-      throw new BadRequestException(
-        `Failed to save query to database: Reason: ${error.message}`,
-      );
-    }
   }
 
   async update(
@@ -559,7 +544,6 @@ export class QueryService {
     queryId: number,
     createQueryDto: CreateQueryDto,
   ) {
-    try {
       const query = await this.queryRepo.findOne({
         where: { id: queryId, userId: userId },
       });
@@ -576,15 +560,6 @@ export class QueryService {
       this.logger.log(`Query ${queryId} updated for user ${userId}`);
 
       return 'Query updated successfully';
-    } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-      this.logger.error(
-        `Failed to update query for user ${userId}: ${error.message}`,
-      );
-      throw new InternalServerErrorException('Failed to update query');
-    }
   }
 
   async linkQueryToDashboard(
@@ -592,7 +567,6 @@ export class QueryService {
     queryId: number,
     dashboardId: number,
   ) {
-    try {
       const query = await this.queryRepo.findOne({
         where: { id: queryId },
         relations: ['dashboards'],
@@ -612,23 +586,15 @@ export class QueryService {
       );
 
       return 'Query linked to dashboard successfully';
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      this.logger.error(`Failed to link query to dashboard: ${error.message}`);
-      throw new InternalServerErrorException(
-        'Failed to link query to dashboard',
-      );
     }
-  }
+  
 
   async unlinkQueryFromDashboard(
     userId: number,
     queryId: number,
     dashboardId: number,
   ) {
-    try {
+    
       const query = await this.queryRepo.findOne({
         where: { id: queryId, userId },
         relations: ['dashboards'],
@@ -644,24 +610,13 @@ export class QueryService {
       query.dashboards = query.dashboards.filter((d) => d.id !== dashboardId);
       await this.queryRepo.save(query);
       this.logger.log(
-        `Query ${queryId} remove dfrom dashboard ${dashboardId} for user ${userId}`,
+        `Query ${queryId} removed from  dashboard ${dashboardId} for user ${userId}`,
       );
       return 'Query unlinked from dashboard successfully';
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      this.logger.error(
-        `Failed to unlink query from dashboard: ${error.message}`,
-      );
-      throw new InternalServerErrorException(
-        'Failed to unlink query from dashboard',
-      );
     }
-  }
+  
 
   async runDashboard(dashboardId: number, userId: number) {
-    try {
       // fetch all queries that have dashboardId = dashboardId in junction table
       const queries = await this.queryRepo
         .createQueryBuilder('query')
@@ -682,14 +637,8 @@ export class QueryService {
       const results = await Promise.all(promises);
 
       return results;
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      this.logger.error(`Couldnt execute queries. Error: ${error.message}`);
-      throw new InternalServerErrorException("Couldn't execute queries");
     }
-  }
+  
   async getDatabaseQueries(
     databaseId: number,
     userId: number,
@@ -697,7 +646,6 @@ export class QueryService {
     limit: number = 10,
     search: string = '',
   ) {
-    try {
       const queryBuilder = this.queryRepo
         .createQueryBuilder('query')
         .select([
@@ -728,59 +676,35 @@ export class QueryService {
         queries,
         count,
       };
-    } catch (error) {
-      this.logger.error(
-        `Failed to fetch queries for database ${databaseId}: ${error.message}`,
-      );
-      throw new InternalServerErrorException("Couldn't fetch queries");
-    }
-  }
+    } 
 
   async getQueryCountForDatabase(databaseId: number, userid: number) {
-    try {
       const count = await this.queryRepo.count({
         where: { databaseId: databaseId, userId: userid },
       });
       return { count: count };
-    } catch (error) {
-      this.logger.error(
-        `Failed to fetch count of queries ${databaseId}: ${error.message}`,
-      );
-      throw new InternalServerErrorException('Couldnt fetch query count');
-    }
   }
 
   async getQueryCountForDashboard(
     dashboardId: number,
   ): Promise<{ count: number }> {
-    try {
       const result = await this.queryRepo.query(
         'SELECT COUNT(*)::int AS count FROM dashboard_query WHERE "dashboardId" = $1',
         [dashboardId],
       );
 
       return { count: result[0]?.count ?? 0 };
-    } catch (error) {
-      this.logger.error(
-        `Failed to fetch query count for dashboard ${dashboardId}: ${error.message}`,
-      );
-      throw new InternalServerErrorException("Couldn't fetch query count");
-    }
-  }
+    } 
 
   async getExecutedQueryCount(userId: number): Promise<{ count: number }> {
-    try {
+   
       const count = await this.queryRepo.query(
         'SELECT COUNT(*)::int AS count FROM queries WHERE data IS NOT NULL AND "userId" = $1',
         [userId],
       );
 
       return { count: count[0]?.count ?? 0 };
-    } catch (error) {
-      this.logger.error(`Failed to fetch query count: ${error.message}`);
-      throw new InternalServerErrorException("Couldn't fetch query count");
-    }
-  }
+    } 
 
   async getDashboardQueries(
     dashboardId: number,
@@ -789,7 +713,7 @@ export class QueryService {
     limit: number = 10,
     search: string = '',
   ) {
-    try {
+  
       const queryBuilder = this.queryRepo
         .createQueryBuilder('query')
         .select([
@@ -819,16 +743,10 @@ export class QueryService {
         .getManyAndCount();
 
       return { queries, count };
-    } catch (error) {
-      this.logger.error(
-        `Failed to fetch queries for dashboard ${dashboardId}: ${error.message}`,
-      );
-      throw new InternalServerErrorException("Couldn't fetch queries");
-    }
-  }
+    } 
 
   async remove(id: number, userId: number) {
-    try {
+ 
       const query = await this.queryRepo.findOne({
         where: { id },
         relations: ['database'],
@@ -840,14 +758,7 @@ export class QueryService {
       await this.queryRepo.delete(id);
       this.logger.log(`Query ${id} deleted for user ${userId}`);
       return 'Query and related dashboard entries deleted successfully';
-    } catch (error) {
-      if (error instanceof ForbiddenException) {
-        throw error;
-      }
-      this.logger.error(`Failed to delete query ${id}: ${error.message}`);
-      throw new InternalServerErrorException('Failed to delete query');
-    }
-  }
+    } 
 
   async suggestQueries(databaseId: number, userId: number) {
     // use llm suggestedQueriesPrompt to generate 10 queries
@@ -1073,7 +984,6 @@ export class QueryService {
   }
 
   async getQueryDataAsJson(queryId: number, userId: number) {
-    try {
       const result = await this.queryRepo.query(
         `SELECT * FROM queries WHERE id = $1 AND "userId" = $2`,
         [queryId, userId],
@@ -1096,21 +1006,9 @@ export class QueryService {
       // Try to directly return the data if it's already in proper format
       this.logger.log(`Generated JSON data for qurey ${queryId}`);
       return rawData;
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-
-      this.logger.error(
-        `Error processing query data: ${error.message}`,
-        error.stack,
-      );
-      throw new InternalServerErrorException('Failed to process query data');
-    }
-  }
+    } 
 
   async getQueryDataAsCsv(queryId: number, userId: number) {
-    try {
       const query = await this.queryRepo.findOne({
         where: { id: queryId, userId: userId },
       });
@@ -1126,17 +1024,10 @@ export class QueryService {
       this.logger.log(`Generated CSV data for qurey ${queryId}`);
 
       return csv;
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      this.logger.error(`Error generating CSV: ${error.message}`, error.stack);
-      throw new InternalServerErrorException('Failed to generate CSV');
     }
-  }
 
   async findOne(id: number, userId: number) {
-    try {
+   
       const query = await this.queryRepo.findOne({
         where: { id, userId },
       });
@@ -1149,12 +1040,5 @@ export class QueryService {
         query.data = JSON.parse(query.data);
       }
       return query;
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      this.logger.error(`Failed to fetch query ${id}: ${error.message}`);
-      throw new InternalServerErrorException('Failed to fetch query');
-    }
-  }
+    } 
 }
