@@ -1015,10 +1015,8 @@ export class QueryService {
       if (!query) {
         throw new NotFoundException('Query not found or access denied');
       }
-
       const data = query.data;
       const parsedData = JSON.parse(data);
-
       const converter = require('json-2-csv');
       const csv = await converter.json2csv(parsedData);
       this.logger.log(`Generated CSV data for qurey ${queryId}`);
