@@ -138,11 +138,11 @@ export class QueryController {
     return { message };
   }
 
-  @Get('sync/:id')
+  @Get('sync/:dashboardId')
   @ApiOperation({ summary: 'Parallel exeute all queries in a dashboard..' })
   @ApiProperty({ type: MessageDto })
   @ApiResponse({ type: QueryEntity })
-  async runDashboard(@Param('id') dashboardId: string, @Request() req) {
+  async runDashboard(@Param('dashboardId') dashboardId: string, @Request() req) {
     const userId = req.user.id;
     const message = await this.queryService.runDashboard(+dashboardId, userId);
     return { message };
@@ -248,7 +248,7 @@ export class QueryController {
   //   return await this.queryService.generateMappings();
   // }
 
-  @Get('insights/:id')
+  @Get(':id/insights')
   @ApiOperation({ summary: 'Get insights for a query.' })
   @ApiProperty({ type: Number })
   @ApiResponse({ type: [QueryEntity] })
@@ -294,40 +294,40 @@ export class QueryController {
     return { message };
   }
 
-  @Get('download-json/:queryId')
+  @Get(':id/download-json')
   @ApiOperation({
     summary: 'Download a qury output in json (for graphical data only',
   })
   async downloadQueryDataAsJson(
-    @Param('queryId', ParseIntPipe) queryId: number,
+    @Param('id', ParseIntPipe) id: number,
     @Res() res: Response,
     @Request() req,
   ) {
     const userId = req.user.id;
-    const data = await this.queryService.getQueryDataAsJson(queryId, userId);
+    const data = await this.queryService.getQueryDataAsJson(id, userId);
 
-    const filename = `query-${queryId}-data.json`;
+    const filename = `query-${id}-data.json`;
     res.setHeader('Content-Type', 'application/json');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     return res.send(data);
   }
 
-  @Get('download-csv/:queryId')
+  @Get(':id/download-csv')
   @ApiOperation({
     summary: 'Download a qury output in csv (for tabular data only)',
   })
   async downloadQueryDataAsCsv(
-    @Param('queryId', ParseIntPipe) queryId: number,
+    @Param('id', ParseIntPipe) id: number,
     @Res() res: Response,
     @Request() req,
   ) {
     const userId = req.user.id;
     const csvContent = await this.queryService.getQueryDataAsCsv(
-      queryId,
+      id,
       userId,
     );
 
-    const filename = `query-${queryId}-data.csv`;
+    const filename = `query-${id}-data.csv`;
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     return res.send(csvContent);

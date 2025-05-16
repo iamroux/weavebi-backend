@@ -108,7 +108,6 @@ export class DashboardController {
     @Body() updateDashboardQueryLabelDto: UpdateDashboardQueryLabelDto,
     @Request() req,
   ) {
-    console.log('updateDashboardQueryLabelDto', updateDashboardQueryLabelDto);
     const userId = req.user.id;
     const message = await this.dashboardService.updateQueryLabel(
       updateDashboardQueryLabelDto,
@@ -151,7 +150,7 @@ export class DashboardController {
     return { message };
   }
 
-  @Get('info/:id')
+  @Get(':id/info')
   @ApiOperation({
     summary: 'Fetch dashboard info ie dashboard and its associated queries',
   })
@@ -162,7 +161,7 @@ export class DashboardController {
     return this.dashboardService.getDashboardInfo(+id, userId);
   }
 
-  @Patch('pin/:id')
+  @Patch(':id/pin')
   @ApiOperation({ summary: 'Pin and unpin a dashboard (toggle)' })
   @ApiResponse({ type: MessageDto })
   @HttpCode(HttpStatus.OK)

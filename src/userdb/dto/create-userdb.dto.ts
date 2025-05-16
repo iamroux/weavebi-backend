@@ -1,7 +1,7 @@
 import { Optional } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
-import { SSLMode } from '../entities/userdb.entity';
+import { SSLMode } from 'src/common/global-enums';
 
 export class CreateUserdbDto {
   @ApiProperty({ example: 'employees' })

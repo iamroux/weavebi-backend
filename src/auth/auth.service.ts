@@ -11,7 +11,6 @@ import { UserEntity } from 'src/user/entities/user.entity';
 import { LoginDto } from './dto/login.dto';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
-import * as nodemailer from 'nodemailer';
 import Redis from 'ioredis';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -45,7 +44,6 @@ export class AuthService {
   }
 
   async create(createAuthDto: CreateAuthDto) {
-    try {
       const existingUser = await this.getUserByEmail(createAuthDto.email);
       if (existingUser) {
         throw new ConflictException('User already exists.');
@@ -54,19 +52,10 @@ export class AuthService {
       await this.userRepo.save(newUser);
       this.logger.log(`Created new user ${newUser.id}`);
       return 'User created successfully.';
-    } catch (error) {
-      this.logger.error(`Failed to create user. Error: ${error.message}`);
-
-      if (error instanceof ConflictException) {
-        throw error;
-      }
-      throw new Error('Failed to create user');
-    }
-  }
+    } 
 
   async login(data: LoginDto) {
     const { email, password } = data;
-    try {
       const user = await this.getUserByEmail(email);
       if (!user) throw new NotFoundException('User not found');
 
@@ -92,18 +81,12 @@ export class AuthService {
         access_token: accessToken,
         refresh_token: refreshToken,
       };
-    } catch (error) {
-      this.logger.error(`Login failed: ${error.message}`);
-      throw error;
-    }
   }
 
   async refreshToken(refreshToken: string) {
     if (!refreshToken) {
       throw new UnauthorizedException('Refresh token must be provided');
     }
-
-    try {
       // Verify the refresh token
       const payload = await this.jwtService.verifyAsync(refreshToken, {
         secret: this.configService.get<string>('jwt.secret'),
@@ -128,10 +111,6 @@ export class AuthService {
       return {
         access_token: newAccessToken,
       };
-    } catch (error) {
-      this.logger.error(`Failed to refresh token: ${error.message}`);
-      throw new UnauthorizedException('Invalid or expired refresh token');
-    }
   }
 
   async forgotPassword(email: string) {
@@ -140,7 +119,6 @@ export class AuthService {
 
     // Generate a random 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000);
-    try {
       await this.mailSesrvice.sendPasswordResetOtp(
         user.name,
         user.email,
@@ -150,10 +128,6 @@ export class AuthService {
       await this.redisClient.set(`otp:${email}`, otp, 'EX', 300);
       this.logger.log(`Email sent to ${email}`);
       return 'Email sent.';
-    } catch (error) {
-      this.logger.error(`Failed to send email: ${error.message}`);
-      throw new Error(`Failed to send email Error: ${error.message}`);
-    }
   }
 
   async resetPassword(data: { email: string; otp: string; password: string }) {
@@ -165,16 +139,9 @@ export class AuthService {
     if (savedOtp != otp) throw new UnauthorizedException('Invalid OTP');
 
     user.password = password;
-    try {
       await this.userRepo.save(user);
-
       await this.redisClient.del(`otp:${email}`);
       this.logger.log(`Password updated for user ${user.id}`);
-
       return 'Password reset successfully.';
-    } catch (error) {
-      this.logger.error(`Failed to reset password: ${error.message}`);
-      throw new Error('Failed to reset password');
-    }
-  }
+    } 
 }

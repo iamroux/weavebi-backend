@@ -19,21 +19,15 @@ export class UserService {
   ) {}
 
   async findOne(userId: number): Promise<UserDto> {
-    try {
       const user = await this.userRepo.findOne({ where: { id: userId } });
       if (!user) {
         throw new NotFoundException('User not found');
       }
       const { password, ...userDto } = user;
       return userDto as UserDto;
-    } catch (error) {
-      this.logger.error(`Failed to fetch user with ID ${userId}`);
-      throw new InternalServerErrorException('Failed to fetch user');
-    }
-  }
+    } 
 
   async update(userId: number, updateUserDto: UpdateUserDto) {
-    try {
       const user = await this.userRepo.findOne({ where: { id: userId } });
       if (!user) {
         throw new NotFoundException('User not found');
@@ -42,23 +36,15 @@ export class UserService {
       await this.userRepo.save(user);
       this.logger.log(`User ${userId} updated`);
       return 'User updated successfully';
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error;
-      }
-      this.logger.error(`Failed to update user with ID ${userId}`);
-      throw new InternalServerErrorException('Failed to update user');
-    }
   }
 
   async remove(userId: number) {
-    try {
+      const user = await this.userRepo.findOne({ where: { id: userId } });
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
       await this.userRepo.delete(userId);
       this.logger.log(`User ${userId} deleted`);
       return 'User Deleted successfully';
-    } catch (error) {
-      this.logger.error(`Failed to delete user with ID ${userId}`);
-      throw new InternalServerErrorException('Failed to delete user');
-    }
-  }
+    } 
 }
