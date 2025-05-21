@@ -15,6 +15,7 @@ RULES:
 - Always use proper JOIN syntax with explicit join conditions
 - Handle NULL values appropriately with COALESCE or IS NULL/IS NOT NULL
 - For numeric calculations, use appropriate casting where needed
+- If the output is a single value, i want the result to be a single row with a single column like [{"value":"1"}]
 
 EXAMPLES:
 User asks: "Show me all users"
