@@ -32,6 +32,7 @@ import { LinkQueryToDashboardDto } from './dto/link-query-to-dashboard.dto';
 import { ExecuteQueryDto } from './dto/execute-query.dto';
 import { Response } from 'express';
 import { PaginationQueryDto } from 'src/core/dtos/pagination-query.dto';
+import { UpdateQueryDto } from './dto/update-query.dto';
 
 @Controller('query')
 @UseGuards(AuthGuard)
@@ -55,10 +56,10 @@ export class QueryController {
   async update(
     @Request() req,
     @Param('id') id: number,
-    @Body() createQueryDto: CreateQueryDto,
+    @Body() updateQuerydto: UpdateQueryDto,
   ) {
     const userId = req.user.id;
-    const message = await this.queryService.update(userId, id, createQueryDto);
+    const message = await this.queryService.update(userId, id, updateQuerydto);
     return { message };
   }
 

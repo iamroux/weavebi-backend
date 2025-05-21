@@ -22,6 +22,7 @@ import { DashboardService } from 'src/dashboard/dashboard.service';
 import { getSSLConfig, mapProviderToTypeORM } from 'src/common/database-utils';
 import { SSLMode } from 'src/common/global-enums';
 import { ConfigService } from '@nestjs/config';
+import { UpdateQueryDto } from './dto/update-query.dto';
 
 @Injectable()
 export class QueryService {
@@ -542,7 +543,7 @@ export class QueryService {
   async update(
     userId: number,
     queryId: number,
-    createQueryDto: CreateQueryDto,
+    updateQueryDto: UpdateQueryDto,
   ) {
       const query = await this.queryRepo.findOne({
         where: { id: queryId, userId: userId },
@@ -552,10 +553,7 @@ export class QueryService {
         throw new BadRequestException('Query not found or unauthorized');
       }
 
-      query.name = createQueryDto.name;
-      query.query = createQueryDto.query;
-      query.outputType = createQueryDto.outputType;
-      query.databaseId = createQueryDto.databaseId;
+      this.queryRepo.merge(query, updateQueryDto);
       await this.queryRepo.save(query);
       this.logger.log(`Query ${queryId} updated for user ${userId}`);
 
