@@ -55,12 +55,12 @@ export class DashboardService {
       // const database = await this.dashboardRepo.findOne({
       //   where: {databaseId: createDashboardDto.databaseId, userId: userId},
       // })
-      if (!database) {
-        this.logger.warn(
-          `Database with id '${createDashboardDto.databaseId}' not found.`,
-        );
-        throw new BadRequestException('Database not found');
-      }
+      // if (!database) {
+      //   this.logger.warn(
+      //     `Database with id '${createDashboardDto.databaseId}' not found.`,
+      //   );
+      //   throw new BadRequestException('Database not found');
+      // }
 
       // Create the dashboard
       const dashboard = this.dashboardRepo.create({
