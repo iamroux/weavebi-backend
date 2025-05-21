@@ -509,7 +509,7 @@ export class QueryService {
 
   async create(userId: number, createQueryDto: CreateQueryDto) {
     const database = await this.queryRepo.findOne({
-      where: {databaseId: createQueryDto.databaseId, userId: userId},
+      where: {database: {id: createQueryDto.databaseId, userId: userId}},
     });
     if (!database) {
       throw new NotFoundException('Database not found');
