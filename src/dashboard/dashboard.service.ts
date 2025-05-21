@@ -50,8 +50,11 @@ export class DashboardService {
 
       // check if databaseId is valid
       const database = await this.dashboardRepo.findOne({
-        where: {databaseId: createDashboardDto.databaseId, userId: userId},
+        where: {database: {id: databaseId}, userId},
       })
+      // const database = await this.dashboardRepo.findOne({
+      //   where: {databaseId: createDashboardDto.databaseId, userId: userId},
+      // })
       if (!database) {
         this.logger.warn(
           `Database with id '${createDashboardDto.databaseId}' not found.`,
