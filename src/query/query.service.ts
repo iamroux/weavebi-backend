@@ -607,6 +607,16 @@ export class QueryService {
 
       query.dashboards = query.dashboards.filter((d) => d.id !== dashboardId);
       await this.queryRepo.save(query);
+      // also remove entry from dashboard_query_position table
+      await this.queryRepo
+        .createQueryBuilder()
+        .delete()
+        .from('dashboard_query_positions')
+        .where('queryId = :queryId AND dashboardId = :dashboardId', {
+          queryId: queryId,
+          dashboardId: dashboardId,
+        })
+        .execute();
       this.logger.log(
         `Query ${queryId} removed from  dashboard ${dashboardId} for user ${userId}`,
       );
