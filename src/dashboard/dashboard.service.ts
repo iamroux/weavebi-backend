@@ -281,27 +281,33 @@ export class DashboardService {
     } 
 
   async updateColors(dto: UpdateDashboardQueryColorDto) {
+    console.log('works here')
     const { colors } = dto;
-
-  
-      const results = [];
-
       // Process each color in the array
       for (const color of colors) {
         const { dashboardId, queryId, chartColor, titleColor } = color;
 
-        // insert/update chartColor, titleColor
+        // insert/update chartColor, titleColor in dashboard_query_positions table
         await this.dashboardRepo
           .createQueryBuilder()
-          .update('dashboard_query_positions')
-          .set({ titleColor, chartColor })
-          .where('dashboardId = :dashboardId', { dashboardId })
-          .andWhere('queryId = :queryId', { queryId })
+          .insert()
+          .into('dashboard_query_positions')
+          .values({
+            dashboardId,
+            queryId,
+            chartColor,
+            titleColor,
+          })
+          .orUpdate(
+            ['chartColor', 'titleColor'],
+            ['dashboardId', 'queryId'],
+          )
           .execute();
         this.logger.log(
           `Colors for query: ${queryId} dashboard ${dashboardId} updated`,
         );
       }
+      console.log('works here3')
       return `Successfully updated colors`;
     } 
 
