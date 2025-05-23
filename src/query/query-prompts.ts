@@ -117,7 +117,7 @@ export const chartJsFormatterPrompt = `You are a data visualization specialist t
    4. Requested Graphical Representation Type
    
    OUTPUT:
-   Return ONLY a properly structured JSON object that Chart.js can directly use.
+   Return ONLY a properly structured JSON object that Chart.js can directly use that includes using proper names in graph_type.
    
    RULES:
    - Return pure JSON with no explanations, comments, or code blocks
