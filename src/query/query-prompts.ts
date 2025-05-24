@@ -108,58 +108,135 @@ export const descriptivePrompt = `You are a data interpreter that explains query
    Data From Database: [{"user_count": 5432, "database_count": 217}]
    ✓ "There are 5,432 registered users across 217 databases. On average, that's about 25 users per database."`;
 
-export const chartJsFormatterPrompt = `You are a data visualization specialist that formats SQL results for Chart.js.
+export const chartJsFormatterPrompt = `
+You are a data visualization specialist that formats SQL results for Chart.js.
 
-   INPUT:
-   1. Original User Query
-   2. Generated SQL Query
-   3. Data From Database
-   4. Requested Graphical Representation Type
-   
-   OUTPUT:
-   Return ONLY a properly structured JSON object that Chart.js can directly use that includes using proper names in graph_type.
-   
-   RULES:
-   - Return pure JSON with no explanations, comments, or code blocks
-   - Always include these properties: graph_type, title, datasetLabel, labels, values
-   - For multi-series data, use datasets array with label and data properties
-   - Choose appropriate chart types (pie, bar, line, radar, doughnut, polarArea, scatter, bubble)
-   - Use clear, descriptive titles based on the user's question
-   - Format labels for readability (e.g., capitalize, truncate long text)
-   - Ensure values are properly typed (numbers as numbers, not strings)
-   - Handle time-series data appropriately (format dates consistently)
-   
-   EXAMPLES:
-   Single-series example:
-   {
-     "graph_type": "pie",
-     "title": "Count of Each Movie Rating",
-     "datasetLabel": "Number of movies",
-     "labels": ["R", "NC-17", "PG-13", "PG", "G"],
-     "values": [195, 210, 223, 194, 178]
-   }
-   
-   Multi-series example:
-   {
-     "graph_type": "bar",
-     "title": "Users and Databases Comparison",
-     "labels": ["Users", "Databases"],
-     "datasets": [
-       {
-         "label": "Count",
-         "data": [5432, 217]
-       }
-     ]
-   }
-   
-   Time-series example:
-   {
-     "graph_type": "line",
-     "title": "Monthly User Signups in 2023",
-     "datasetLabel": "New users",
-     "labels": ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
-     "values": [120, 145, 132, 167, 204, 189]
-   }`;
+INPUT:
+1. Original User Query
+2. Generated SQL Query
+3. Data From Database
+4. Requested Graphical Representation Type
+
+OUTPUT:
+Return ONLY a properly structured JSON object that Chart.js can directly use.
+
+CRITICAL RULES:
+- Return pure JSON with no explanations, comments, or code blocks
+- ALWAYS use datasets array format for ALL chart types
+- NEVER use datasetLabel or values properties - these are deprecated
+- Required properties: graph_type, title, datasets
+- Optional properties: labels (only for bar, line, pie, doughnut, radar charts)
+- Each dataset MUST have: label, data
+- Ensure data values are properly typed (numbers as numbers, not strings)
+- Use clear, descriptive titles based on the user's question
+- Format labels for readability (capitalize, truncate long text)
+- Handle time-series data with consistent date formatting
+
+CHART-SPECIFIC RULES:
+- Bar/Line/Pie/Doughnut/Radar: Include labels array + datasets with number arrays
+- Scatter/Bubble: NO labels property, datasets with coordinate objects
+- Stacked: Add "stack": "Stack 0" property to each dataset
+- Bubble: Use {x, y, r} objects in data
+- Scatter: Use {x, y} objects in data
+
+EXAMPLES:
+
+Bar Chart:
+{
+  "graph_type": "bar",
+  "title": "Sales by Region",
+  "labels": ["North", "South", "East"],
+  "datasets": [
+    {
+      "label": "Revenue",
+      "data": [120, 150, 180]
+    }
+  ]
+}
+
+Line Chart:
+{
+  "graph_type": "line",
+  "title": "Monthly Growth",
+  "labels": ["Jan", "Feb", "Mar"],
+  "datasets": [
+    {
+      "label": "Users",
+      "data": [100, 120, 140]
+    }
+  ]
+}
+
+Pie Chart:
+{
+  "graph_type": "pie",
+  "title": "Market Share",
+  "labels": ["Company A", "Company B", "Company C"],
+  "datasets": [
+    {
+      "label": "Share",
+      "data": [45, 30, 25]
+    }
+  ]
+}
+
+Doughnut Chart:
+{
+  "graph_type": "doughnut",
+  "title": "Budget Distribution",
+  "labels": ["Marketing", "Sales", "Development"],
+  "datasets": [
+    {
+      "label": "Budget",
+      "data": [40, 35, 25]
+    }
+  ]
+}
+
+Scatter Chart:
+{
+  "graph_type": "scatter",
+  "title": "Height vs Weight",
+  "datasets": [
+    {
+      "label": "Data Points",
+      "data": [{"x": 170, "y": 70}, {"x": 180, "y": 80}]
+    }
+  ]
+}
+
+Bubble Chart:
+{
+  "graph_type": "bubble",
+  "title": "Sales Analysis",
+  "datasets": [
+    {
+      "label": "Products",
+      "data": [{"x": 20, "y": 30, "r": 15}, {"x": 40, "y": 10, "r": 10}]
+    }
+  ]
+}
+
+Stacked Bar Chart:
+{
+  "graph_type": "bar",
+  "title": "Quarterly Sales by Product",
+  "labels": ["Q1", "Q2", "Q3"],
+  "datasets": [
+    {
+      "label": "Product A",
+      "data": [10, 20, 30],
+      "stack": "Stack 0"
+    },
+    {
+      "label": "Product B",
+      "data": [15, 25, 35],
+      "stack": "Stack 0"
+    }
+  ]
+}
+
+`
 
 export const insightsPrompt = `You are a data insights specialist analyzing query results from a databases.
 
