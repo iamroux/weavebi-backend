@@ -44,73 +44,73 @@ export class AuthService {
   }
 
   async create(createAuthDto: CreateAuthDto) {
-      const existingUser = await this.getUserByEmail(createAuthDto.email);
-      if (existingUser) {
-        throw new ConflictException('User already exists.');
-      }
-      const newUser = this.userRepo.create({ ...createAuthDto });
-      await this.userRepo.save(newUser);
-      this.logger.log(`Created new user ${newUser.id}`);
-      return 'User created successfully.';
-    } 
+    const existingUser = await this.getUserByEmail(createAuthDto.email);
+    if (existingUser) {
+      throw new ConflictException('User already exists.');
+    }
+    const newUser = this.userRepo.create({ ...createAuthDto });
+    await this.userRepo.save(newUser);
+    this.logger.log(`Created new user ${newUser.id}`);
+    return 'User created successfully.';
+  }
 
   async login(data: LoginDto) {
     const { email, password } = data;
-      const user = await this.getUserByEmail(email);
-      if (!user) throw new NotFoundException('User not found');
+    const user = await this.getUserByEmail(email);
+    if (!user) throw new NotFoundException('User not found');
 
-      const match = await argon2.verify(user.password, password);
-      if (!match) throw new UnauthorizedException('Bad credentials');
+    const match = await argon2.verify(user.password, password);
+    if (!match) throw new UnauthorizedException('Bad credentials');
 
-      const payload = {
-        id: user.id,
-        email,
-        name: user.name,
-      };
+    const payload = {
+      id: user.id,
+      email,
+      name: user.name,
+    };
 
-      const accessToken = await this.jwtService.signAsync(payload, {
-        expiresIn: this.configService.get<string>('jwt.accessTokenExpiresIn'),
-      });
+    const accessToken = await this.jwtService.signAsync(payload, {
+      expiresIn: this.configService.get<string>('jwt.accessTokenExpiresIn'),
+    });
 
-      const refreshToken = await this.jwtService.signAsync(payload, {
-        expiresIn: this.configService.get<string>('jwt.refreshTokenExpiresIn'),
-      });
+    const refreshToken = await this.jwtService.signAsync(payload, {
+      expiresIn: this.configService.get<string>('jwt.refreshTokenExpiresIn'),
+    });
 
-      this.logger.log(`Tokens generated for user ${user.id}`);
-      return {
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      };
+    this.logger.log(`Tokens generated for user ${user.id}`);
+    return {
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    };
   }
 
   async refreshToken(refreshToken: string) {
     if (!refreshToken) {
       throw new UnauthorizedException('Refresh token must be provided');
     }
-      // Verify the refresh token
-      const payload = await this.jwtService.verifyAsync(refreshToken, {
-        secret: this.configService.get<string>('jwt.secret'),
-      });
+    // Verify the refresh token
+    const payload = await this.jwtService.verifyAsync(refreshToken, {
+      secret: this.configService.get<string>('jwt.secret'),
+    });
 
-      // Fetch the user by ID from the payload
-      const user = await this.getUserByEmail(payload.email);
-      if (!user) {
-        throw new UnauthorizedException('Invalid refresh token');
-      }
+    // Fetch the user by ID from the payload
+    const user = await this.getUserByEmail(payload.email);
+    if (!user) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
 
-      // Generate a new access token
-      const newAccessToken = await this.jwtService.signAsync(
-        { id: user.id, email: user.email, name: user.name },
-        {
-          expiresIn: this.configService.get<string>('jwt.accessTokenExpiresIn'),
-        },
-      );
+    // Generate a new access token
+    const newAccessToken = await this.jwtService.signAsync(
+      { id: user.id, email: user.email, name: user.name },
+      {
+        expiresIn: this.configService.get<string>('jwt.accessTokenExpiresIn'),
+      },
+    );
 
-      this.logger.log(`Token refreshed for user ${user.id}`);
+    this.logger.log(`Token refreshed for user ${user.id}`);
 
-      return {
-        access_token: newAccessToken,
-      };
+    return {
+      access_token: newAccessToken,
+    };
   }
 
   async forgotPassword(email: string) {
@@ -119,15 +119,15 @@ export class AuthService {
 
     // Generate a random 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000);
-      await this.mailSesrvice.sendPasswordResetOtp(
-        user.name,
-        user.email,
-        otp.toString(),
-      );
+    await this.mailSesrvice.sendPasswordResetOtp(
+      user.name,
+      user.email,
+      otp.toString(),
+    );
 
-      await this.redisClient.set(`otp:${email}`, otp, 'EX', 300);
-      this.logger.log(`Email sent to ${email}`);
-      return 'Email sent.';
+    await this.redisClient.set(`otp:${email}`, otp, 'EX', 300);
+    this.logger.log(`Email sent to ${email}`);
+    return 'Email sent.';
   }
 
   async resetPassword(data: { email: string; otp: string; password: string }) {
@@ -139,9 +139,9 @@ export class AuthService {
     if (savedOtp != otp) throw new UnauthorizedException('Invalid OTP');
 
     user.password = password;
-      await this.userRepo.save(user);
-      await this.redisClient.del(`otp:${email}`);
-      this.logger.log(`Password updated for user ${user.id}`);
-      return 'Password reset successfully.';
-    } 
+    await this.userRepo.save(user);
+    await this.redisClient.del(`otp:${email}`);
+    this.logger.log(`Password updated for user ${user.id}`);
+    return 'Password reset successfully.';
+  }
 }
