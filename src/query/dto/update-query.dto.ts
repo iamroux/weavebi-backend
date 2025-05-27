@@ -19,5 +19,4 @@ export class UpdateQueryDto {
   @IsNotEmpty()
   @IsOptional()
   outputType?: string;
-
 }

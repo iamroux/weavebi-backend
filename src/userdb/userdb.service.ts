@@ -1520,45 +1520,43 @@ export class UserdbService {
     sortBy: string = 'createdAt',
     sortOrder: 'ASC' | 'DESC' = 'DESC',
   ) {
-      const queryBuilder = this.userDbRepo
-        .createQueryBuilder('userdb')
-        .where('userdb.userId = :userId', { userId });
+    const queryBuilder = this.userDbRepo
+      .createQueryBuilder('userdb')
+      .where('userdb.userId = :userId', { userId });
 
-      if (search) {
-        queryBuilder.andWhere(
-          '(userdb.name ILIKE :search OR userdb.host ILIKE :search)',
-          { search: `%${search}%` },
-        );
-      }
+    if (search) {
+      queryBuilder.andWhere(
+        '(userdb.name ILIKE :search OR userdb.host ILIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
 
-      const validSortFields = ['createdAt', 'updatedAt'];
-      const validSortBy = validSortFields.includes(sortBy)
-        ? sortBy
-        : 'createdAt';
-      const validSortOrder = sortOrder === 'ASC' ? 'ASC' : 'DESC';
+    const validSortFields = ['createdAt', 'updatedAt'];
+    const validSortBy = validSortFields.includes(sortBy) ? sortBy : 'createdAt';
+    const validSortOrder = sortOrder === 'ASC' ? 'ASC' : 'DESC';
 
-      queryBuilder.orderBy(`userdb.${validSortBy}`, validSortOrder);
+    queryBuilder.orderBy(`userdb.${validSortBy}`, validSortOrder);
 
-      const [databases, count] = await queryBuilder
-        .skip((page - 1) * limit)
-        .take(limit)
-        .select([
-          'userdb.connectionName',
-          'userdb.description',
-          'userdb.id',
-          'userdb.name',
-          'userdb.provider',
-          'userdb.username',
-          'userdb.host',
-          'userdb.port',
-          'userdb.createdAt',
-          'userdb.updatedAt',
-          'userdb.userId',
-          'userdb.ssl',
-        ])
-        .getManyAndCount();
+    const [databases, count] = await queryBuilder
+      .skip((page - 1) * limit)
+      .take(limit)
+      .select([
+        'userdb.connectionName',
+        'userdb.description',
+        'userdb.id',
+        'userdb.name',
+        'userdb.provider',
+        'userdb.username',
+        'userdb.host',
+        'userdb.port',
+        'userdb.createdAt',
+        'userdb.updatedAt',
+        'userdb.userId',
+        'userdb.ssl',
+      ])
+      .getManyAndCount();
 
-      return { databases, count };
+    return { databases, count };
   }
 
   async test(userId: number, createUserdbDto: CreateUserdbDto) {
@@ -1648,8 +1646,8 @@ export class UserdbService {
   }
 
   async getCount(userId: number) {
-      const result = await this.userDbRepo.query(
-        `
+    const result = await this.userDbRepo.query(
+      `
         SELECT
           COUNT(d.id) AS "totalCount",
           SUM(CASE WHEN EXISTS (
@@ -1658,119 +1656,118 @@ export class UserdbService {
         FROM databases d
         WHERE d."userId" = $1
       `,
-        [userId],
-      );
+      [userId],
+    );
 
-      if (result.length === 0) {
-        return { totalCount: 0, activeCount: 0, inactiveCount: 0 };
-      }
+    if (result.length === 0) {
+      return { totalCount: 0, activeCount: 0, inactiveCount: 0 };
+    }
 
-      // Ensure null counts return zero
-      const { totalCount = 0, activeCount = 0 } = result[0];
-      const parsedTotalCount = parseInt(totalCount, 10);
-      const parsedActiveCount = parseInt(activeCount, 10);
+    // Ensure null counts return zero
+    const { totalCount = 0, activeCount = 0 } = result[0];
+    const parsedTotalCount = parseInt(totalCount, 10);
+    const parsedActiveCount = parseInt(activeCount, 10);
 
-      return {
-        totalCount: parsedTotalCount,
-        activeCount: parsedActiveCount,
-        inactiveCount: parsedTotalCount - parsedActiveCount,
-      };
+    return {
+      totalCount: parsedTotalCount,
+      activeCount: parsedActiveCount,
+      inactiveCount: parsedTotalCount - parsedActiveCount,
+    };
   }
 
   async update(userId: number, id: number, updateUserdbDto: UpdateUserdbDto) {
-      const existingDatabase = await this.userDbRepo.findOne({
+    const existingDatabase = await this.userDbRepo.findOne({
+      where: {
+        id: id,
+        userId: userId,
+      },
+    });
+
+    if (!existingDatabase) {
+      throw new BadRequestException('Database not found');
+    }
+
+    // Check if the database name is being changed to an existing one
+    if (
+      updateUserdbDto.name &&
+      updateUserdbDto.name !== existingDatabase.name
+    ) {
+      const existingName = await this.userDbRepo.findOne({
         where: {
-          id: id,
+          name: updateUserdbDto.name,
           userId: userId,
         },
       });
 
-      if (!existingDatabase) {
-        throw new BadRequestException('Database not found');
+      if (existingName) {
+        throw new ConflictException('Database with same name already exists');
       }
+    }
 
-      // Check if the database name is being changed to an existing one
-      if (
-        updateUserdbDto.name &&
-        updateUserdbDto.name !== existingDatabase.name
-      ) {
-        const existingName = await this.userDbRepo.findOne({
-          where: {
-            name: updateUserdbDto.name,
-            userId: userId,
-          },
-        });
+    // Get the schema of the database
+    const schema = await this.getSchema(
+      updateUserdbDto.provider as 'mysql' | 'mariadb' | 'postgres' | 'mssql',
+      updateUserdbDto.host || '',
+      updateUserdbDto.port || 0,
+      updateUserdbDto.username || '',
+      updateUserdbDto.password || '',
+      updateUserdbDto.name || '',
+      updateUserdbDto.ssl || SSLMode.DISABLE,
+    );
 
-        if (existingName) {
-          throw new ConflictException('Database with same name already exists');
-        }
-      }
+    // Update the database entry with the new schema and other provided details
+    const updatedDatabase = this.userDbRepo.merge(existingDatabase, {
+      ...updateUserdbDto,
+      schema: JSON.stringify(schema),
+    });
 
-      // Get the schema of the database
-      const schema = await this.getSchema(
-        updateUserdbDto.provider as 'mysql' | 'mariadb' | 'postgres' | 'mssql',
-        updateUserdbDto.host || '',
-        updateUserdbDto.port || 0,
-        updateUserdbDto.username || '',
-        updateUserdbDto.password || '',
-        updateUserdbDto.name || '',
-        updateUserdbDto.ssl || SSLMode.DISABLE,
-      );
-
-      // Update the database entry with the new schema and other provided details
-      const updatedDatabase = this.userDbRepo.merge(existingDatabase, {
-        ...updateUserdbDto,
-        schema: JSON.stringify(schema),
-      });
-
-      await this.userDbRepo.save(updatedDatabase);
-      this.logger.log(`Database ${id} for user ${userId} updated`);
-      return 'Database updated successfully';
-    } 
-
+    await this.userDbRepo.save(updatedDatabase);
+    this.logger.log(`Database ${id} for user ${userId} updated`);
+    return 'Database updated successfully';
+  }
 
   async findOne(userId: number, id: number) {
-      const database = await this.userDbRepo.findOne({
-        where: {
-          id: id,
-          userId: userId,
-        },
-        select: [
-          'id',
-          'name',
-          'provider',
-          'username',
-          'host',
-          'port',
-          'createdAt',
-          'updatedAt',
-          'userId',
-          'connectionName',
-          'description',
-          'ssl',
-        ],
-      });
+    const database = await this.userDbRepo.findOne({
+      where: {
+        id: id,
+        userId: userId,
+      },
+      select: [
+        'id',
+        'name',
+        'provider',
+        'username',
+        'host',
+        'port',
+        'createdAt',
+        'updatedAt',
+        'userId',
+        'connectionName',
+        'description',
+        'ssl',
+      ],
+    });
 
-      if (!database) {
-        throw new BadRequestException('Database not found');
-      }
-      return database;
-    } 
+    if (!database) {
+      throw new BadRequestException('Database not found');
+    }
+    return database;
+  }
 
   async remove(userId: number, id: number) {
-      const database = await this.userDbRepo.findOne({
-        where: {
-          id: id,
-          userId: userId,
-        },
-      });
+    const database = await this.userDbRepo.findOne({
+      where: {
+        id: id,
+        userId: userId,
+      },
+    });
 
-      if (!database) {
-        throw new BadRequestException('Database not found');
-      }
+    if (!database) {
+      throw new BadRequestException('Database not found');
+    }
 
-      await this.userDbRepo.remove(database);
-      this.logger.log(`Database ${id} for user ${userId} deleted`);
-      return 'Database deleted successfully';
+    await this.userDbRepo.remove(database);
+    this.logger.log(`Database ${id} for user ${userId} deleted`);
+    return 'Database deleted successfully';
   }
 }

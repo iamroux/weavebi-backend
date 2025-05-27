@@ -237,7 +237,7 @@ Stacked Bar Chart:
   ]
 }
 
-`
+`;
 
 export const insightsPrompt = `You are a data insights specialist analyzing query results from a databases.
 

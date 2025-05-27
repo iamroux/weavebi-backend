@@ -89,10 +89,10 @@ export class DashboardQueryPositionEntity {
   @Column({ type: 'int', nullable: true, default: 0 })
   y: number;
 
-  @Column({ type: 'int' , nullable: true , default: 0})
+  @Column({ type: 'int', nullable: true, default: 0 })
   z: number;
 
-  @Column({ type: 'int' , nullable: true , default: 0})
+  @Column({ type: 'int', nullable: true, default: 0 })
   h: number;
 
   @Column({ type: 'varchar', nullable: true })

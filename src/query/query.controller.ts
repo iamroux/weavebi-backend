@@ -143,7 +143,10 @@ export class QueryController {
   @ApiOperation({ summary: 'Parallel exeute all queries in a dashboard..' })
   @ApiProperty({ type: MessageDto })
   @ApiResponse({ type: QueryEntity })
-  async runDashboard(@Param('dashboardId') dashboardId: string, @Request() req) {
+  async runDashboard(
+    @Param('dashboardId') dashboardId: string,
+    @Request() req,
+  ) {
     const userId = req.user.id;
     const message = await this.queryService.runDashboard(+dashboardId, userId);
     return { message };
@@ -323,10 +326,7 @@ export class QueryController {
     @Request() req,
   ) {
     const userId = req.user.id;
-    const csvContent = await this.queryService.getQueryDataAsCsv(
-      id,
-      userId,
-    );
+    const csvContent = await this.queryService.getQueryDataAsCsv(id, userId);
 
     const filename = `query-${id}-data.csv`;
     res.setHeader('Content-Type', 'text/csv');

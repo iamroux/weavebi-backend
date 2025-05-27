@@ -67,47 +67,51 @@ export class QueryService {
       prompt += `\nOutput Type: ${outputType}`;
     }
 
-      const response = await openai.chat.completions.create({
-        model: this.OPENAI_MODEL,
-        temperature: this.OPENAI_TEMPERATURE,
-        messages: [
-          { role: 'system', content: QueryPrompts.primaryPrompt },
-          { role: 'user', content: prompt },
-        ],
-      });
+    const response = await openai.chat.completions.create({
+      model: this.OPENAI_MODEL,
+      temperature: this.OPENAI_TEMPERATURE,
+      messages: [
+        { role: 'system', content: QueryPrompts.primaryPrompt },
+        { role: 'user', content: prompt },
+      ],
+    });
 
-      const cleanResponse = response.choices[0].message.content?.trim() ?? '';
-      this.logger.debug(`Generated SQL query: ${cleanResponse}`);
+    const cleanResponse = response.choices[0].message.content?.trim() ?? '';
+    this.logger.debug(`Generated SQL query: ${cleanResponse}`);
 
-      if (cleanResponse.includes('bad request')) {
-        this.logger.warn(
-          `Generated SQL query contains 'bad request' or similar error message: ${cleanResponse}`,
-        );
-        throw new BadRequestException('Invalid query. Please refine your request.');
-      }
+    if (cleanResponse.includes('bad request')) {
+      this.logger.warn(
+        `Generated SQL query contains 'bad request' or similar error message: ${cleanResponse}`,
+      );
+      throw new BadRequestException(
+        'Invalid query. Please refine your request.',
+      );
+    }
 
-      // Security check for DML operations (nakli guardrails but works)
-      const dmlKeywords = [
-        'INSERT',
-        'UPDATE',
-        'DELETE',
-        'CREATE',
-        'ALTER',
-        'DROP',
-        'MERGE',
-        'CALL',
-        'LOCK',
-        'TRUNCATE',
-      ];
+    // Security check for DML operations (nakli guardrails but works)
+    const dmlKeywords = [
+      'INSERT',
+      'UPDATE',
+      'DELETE',
+      'CREATE',
+      'ALTER',
+      'DROP',
+      'MERGE',
+      'CALL',
+      'LOCK',
+      'TRUNCATE',
+    ];
 
-      const dmlRegex = new RegExp(`\\b(${dmlKeywords.join('|')})\\b`, 'i');
-      if (dmlRegex.test(cleanResponse)) {
-        this.logger.warn(
-          `Generated SQL query contains DML keywords: ${cleanResponse}`,
-        );
-        throw new BadRequestException('Generated SQL query contains DML keywords. Query execution blocked');
-      }
-      return cleanResponse;
+    const dmlRegex = new RegExp(`\\b(${dmlKeywords.join('|')})\\b`, 'i');
+    if (dmlRegex.test(cleanResponse)) {
+      this.logger.warn(
+        `Generated SQL query contains DML keywords: ${cleanResponse}`,
+      );
+      throw new BadRequestException(
+        'Generated SQL query contains DML keywords. Query execution blocked',
+      );
+    }
+    return cleanResponse;
   }
 
   // Helper method to execute SQL query against database
@@ -493,34 +497,34 @@ export class QueryService {
 
   async create(userId: number, createQueryDto: CreateQueryDto) {
     const database = await this.queryRepo.findOne({
-      where: {database: {id: createQueryDto.databaseId, userId: userId}},
+      where: { database: { id: createQueryDto.databaseId, userId: userId } },
     });
     if (!database) {
       throw new NotFoundException('Database not found');
     }
-      const existingQuery = await this.queryRepo.findOne({
-        where: {
-          name: createQueryDto.name,
-          query: createQueryDto.query,
-          outputType: createQueryDto.outputType,
-          databaseId: createQueryDto.databaseId,
-          userId: userId,
-        },
-      });
-      if (existingQuery) {
-        throw new ConflictException('Query already exists');
-      }
-      const query = this.queryRepo.create({
+    const existingQuery = await this.queryRepo.findOne({
+      where: {
         name: createQueryDto.name,
         query: createQueryDto.query,
         outputType: createQueryDto.outputType,
         databaseId: createQueryDto.databaseId,
         userId: userId,
-      });
-      await this.queryRepo.save(query);
-      this.logger.log(`Query ${query.id} for user ${userId} saved`);
+      },
+    });
+    if (existingQuery) {
+      throw new ConflictException('Query already exists');
+    }
+    const query = this.queryRepo.create({
+      name: createQueryDto.name,
+      query: createQueryDto.query,
+      outputType: createQueryDto.outputType,
+      databaseId: createQueryDto.databaseId,
+      userId: userId,
+    });
+    await this.queryRepo.save(query);
+    this.logger.log(`Query ${query.id} for user ${userId} saved`);
 
-      return query;
+    return query;
   }
 
   async update(
@@ -528,19 +532,19 @@ export class QueryService {
     queryId: number,
     updateQueryDto: UpdateQueryDto,
   ) {
-      const query = await this.queryRepo.findOne({
-        where: { id: queryId, userId: userId },
-      });
+    const query = await this.queryRepo.findOne({
+      where: { id: queryId, userId: userId },
+    });
 
-      if (!query) {
-        throw new BadRequestException('Query not found or unauthorized');
-      }
+    if (!query) {
+      throw new BadRequestException('Query not found or unauthorized');
+    }
 
-      this.queryRepo.merge(query, updateQueryDto);
-      await this.queryRepo.save(query);
-      this.logger.log(`Query ${queryId} updated for user ${userId}`);
+    this.queryRepo.merge(query, updateQueryDto);
+    await this.queryRepo.save(query);
+    this.logger.log(`Query ${queryId} updated for user ${userId}`);
 
-      return 'Query updated successfully';
+    return 'Query updated successfully';
   }
 
   async linkQueryToDashboard(
@@ -548,100 +552,97 @@ export class QueryService {
     queryId: number,
     dashboardId: number,
   ) {
-      const query = await this.queryRepo.findOne({
-        where: { id: queryId },
-        relations: ['dashboards'],
-      });
-      const dashboard = await this.queryRepo.manager.findOne(DashboardEntity, {
-        where: { id: dashboardId, userId },
-      });
+    const query = await this.queryRepo.findOne({
+      where: { id: queryId },
+      relations: ['dashboards'],
+    });
+    const dashboard = await this.queryRepo.manager.findOne(DashboardEntity, {
+      where: { id: dashboardId, userId },
+    });
 
-      if (!query || !dashboard) {
-        throw new NotFoundException('Query or Dashboard not found');
-      }
-
-      query.dashboards.push(dashboard);
-      await this.queryRepo.save(query);
-
-      // also add entry to dashboard_query_position table
-      await this.queryRepo
-        .createQueryBuilder()
-        .insert()
-        .into('dashboard_query_positions')
-        .values({
-          queryId: queryId,
-          dashboardId: dashboardId,
-        })
-        .execute();
-      
-      this.logger.log(
-        `Query ${queryId} linked to dashboard ${dashboardId} for user ${userId}`,
-      );
-
-      return 'Query linked to dashboard successfully';
+    if (!query || !dashboard) {
+      throw new NotFoundException('Query or Dashboard not found');
     }
-  
+
+    query.dashboards.push(dashboard);
+    await this.queryRepo.save(query);
+
+    // also add entry to dashboard_query_position table
+    await this.queryRepo
+      .createQueryBuilder()
+      .insert()
+      .into('dashboard_query_positions')
+      .values({
+        queryId: queryId,
+        dashboardId: dashboardId,
+      })
+      .execute();
+
+    this.logger.log(
+      `Query ${queryId} linked to dashboard ${dashboardId} for user ${userId}`,
+    );
+
+    return 'Query linked to dashboard successfully';
+  }
 
   async unlinkQueryFromDashboard(
     userId: number,
     queryId: number,
     dashboardId: number,
   ) {
-    
-      const query = await this.queryRepo.findOne({
-        where: { id: queryId, userId },
-        relations: ['dashboards'],
-      });
-      const dashboard = await this.queryRepo.manager.findOne(DashboardEntity, {
-        where: { id: dashboardId },
-      });
+    const query = await this.queryRepo.findOne({
+      where: { id: queryId, userId },
+      relations: ['dashboards'],
+    });
+    const dashboard = await this.queryRepo.manager.findOne(DashboardEntity, {
+      where: { id: dashboardId },
+    });
 
-      if (!query || !dashboard) {
-        throw new NotFoundException('Query or Dashboard not found');
-      }
-
-      query.dashboards = query.dashboards.filter((d) => d.id !== dashboardId);
-      await this.queryRepo.save(query);
-      // also remove entry from dashboard_query_position table
-      await this.queryRepo
-        .createQueryBuilder()
-        .delete()
-        .from('dashboard_query_positions')
-        .where('queryId = :queryId AND dashboardId = :dashboardId', {
-          queryId: queryId,
-          dashboardId: dashboardId,
-        })
-        .execute();
-      this.logger.log(
-        `Query ${queryId} removed from  dashboard ${dashboardId} for user ${userId}`,
-      );
-      return 'Query unlinked from dashboard successfully';
+    if (!query || !dashboard) {
+      throw new NotFoundException('Query or Dashboard not found');
     }
-  
+
+    query.dashboards = query.dashboards.filter((d) => d.id !== dashboardId);
+    await this.queryRepo.save(query);
+    // also remove entry from dashboard_query_position table
+    await this.queryRepo
+      .createQueryBuilder()
+      .delete()
+      .from('dashboard_query_positions')
+      .where('queryId = :queryId AND dashboardId = :dashboardId', {
+        queryId: queryId,
+        dashboardId: dashboardId,
+      })
+      .execute();
+    this.logger.log(
+      `Query ${queryId} removed from  dashboard ${dashboardId} for user ${userId}`,
+    );
+    return 'Query unlinked from dashboard successfully';
+  }
 
   async runDashboard(dashboardId: number, userId: number) {
-      // fetch all queries that have dashboardId = dashboardId in junction table
-      const queries = await this.queryRepo
-        .createQueryBuilder('query')
-        .innerJoin('query.dashboards', 'dashboard')
-        .innerJoin('query.database', 'database')
-        .where('dashboard.id = :dashboardId', { dashboardId })
-        .andWhere('database.userId = :userId', { userId })
-        .getMany();
+    // fetch all queries that have dashboardId = dashboardId in junction table
+    const queries = await this.queryRepo
+      .createQueryBuilder('query')
+      .innerJoin('query.dashboards', 'dashboard')
+      .innerJoin('query.database', 'database')
+      .where('dashboard.id = :dashboardId', { dashboardId })
+      .andWhere('database.userId = :userId', { userId })
+      .getMany();
 
-      if (!queries.length) {
-        throw new NotFoundException('No queries found for this dashboard');
-      }
-
-      // execute queries in parallel
-      // basically need to runQuery on all of the queries found above.
-
-      const promises = queries.map((query) => this.runQuery(query.id, userId));
-      const results = await Promise.all(promises);
-
-      return results;
+    if (!queries.length) {
+      throw new NotFoundException('No queries found for this dashboard');
     }
-  
+
+    // execute queries in parallel
+    // basically need to runQuery on all of the queries found above.
+
+    const promises = queries.map((query) => this.runQuery(query.id, userId));
+    const results = await Promise.all(promises);
+
+    return results;
+  }
+
   async getDatabaseQueries(
     databaseId: number,
     userId: number,
@@ -649,65 +650,64 @@ export class QueryService {
     limit: number = 10,
     search: string = '',
   ) {
-      const queryBuilder = this.queryRepo
-        .createQueryBuilder('query')
-        .select([
-          'query.id',
-          'query.name',
-          'query.query',
-          'query.outputType',
-          'query.createdAt',
-          'query.updatedAt',
-          'query.userId',
-          'query.databaseId',
-        ]);
+    const queryBuilder = this.queryRepo
+      .createQueryBuilder('query')
+      .select([
+        'query.id',
+        'query.name',
+        'query.query',
+        'query.outputType',
+        'query.createdAt',
+        'query.updatedAt',
+        'query.userId',
+        'query.databaseId',
+      ]);
 
-      queryBuilder.where('query.databaseId = :databaseId', { databaseId });
-      queryBuilder.andWhere('query.userId = :userId', { userId });
+    queryBuilder.where('query.databaseId = :databaseId', { databaseId });
+    queryBuilder.andWhere('query.userId = :userId', { userId });
 
-      if (search) {
-        queryBuilder.andWhere(
-          '(query.name ILIKE :search OR query.query ILIKE :search)',
-          { search: `%${search}%` },
-        );
-      }
+    if (search) {
+      queryBuilder.andWhere(
+        '(query.name ILIKE :search OR query.query ILIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
 
-      queryBuilder.skip((page - 1) * limit).take(limit);
-      const [queries, count] = await queryBuilder.getManyAndCount();
+    queryBuilder.skip((page - 1) * limit).take(limit);
+    const [queries, count] = await queryBuilder.getManyAndCount();
 
-      return {
-        queries,
-        count,
-      };
-    } 
+    return {
+      queries,
+      count,
+    };
+  }
 
   async getQueryCountForDatabase(databaseId: number, userid: number) {
-      const count = await this.queryRepo.count({
-        where: { databaseId: databaseId, userId: userid },
-      });
-      return { count: count };
+    const count = await this.queryRepo.count({
+      where: { databaseId: databaseId, userId: userid },
+    });
+    return { count: count };
   }
 
   async getQueryCountForDashboard(
     dashboardId: number,
   ): Promise<{ count: number }> {
-      const result = await this.queryRepo.query(
-        'SELECT COUNT(*)::int AS count FROM dashboard_query WHERE "dashboardId" = $1',
-        [dashboardId],
-      );
+    const result = await this.queryRepo.query(
+      'SELECT COUNT(*)::int AS count FROM dashboard_query WHERE "dashboardId" = $1',
+      [dashboardId],
+    );
 
-      return { count: result[0]?.count ?? 0 };
-    } 
+    return { count: result[0]?.count ?? 0 };
+  }
 
   async getExecutedQueryCount(userId: number): Promise<{ count: number }> {
-   
-      const count = await this.queryRepo.query(
-        'SELECT COUNT(*)::int AS count FROM queries WHERE data IS NOT NULL AND "userId" = $1',
-        [userId],
-      );
+    const count = await this.queryRepo.query(
+      'SELECT COUNT(*)::int AS count FROM queries WHERE data IS NOT NULL AND "userId" = $1',
+      [userId],
+    );
 
-      return { count: count[0]?.count ?? 0 };
-    } 
+    return { count: count[0]?.count ?? 0 };
+  }
 
   async getDashboardQueries(
     dashboardId: number,
@@ -716,52 +716,50 @@ export class QueryService {
     limit: number = 10,
     search: string = '',
   ) {
-  
-      const queryBuilder = this.queryRepo
-        .createQueryBuilder('query')
-        .select([
-          'query.id',
-          'query.name',
-          'query.query',
-          'query.outputType',
-          'query.createdAt',
-          'query.updatedAt',
-          'query.databaseId',
-        ])
-        .innerJoin('query.dashboards', 'dashboard')
-        .innerJoin('query.database', 'database')
-        .where('dashboard.id = :dashboardId', { dashboardId })
-        .andWhere('database.userId = :userId', { userId });
+    const queryBuilder = this.queryRepo
+      .createQueryBuilder('query')
+      .select([
+        'query.id',
+        'query.name',
+        'query.query',
+        'query.outputType',
+        'query.createdAt',
+        'query.updatedAt',
+        'query.databaseId',
+      ])
+      .innerJoin('query.dashboards', 'dashboard')
+      .innerJoin('query.database', 'database')
+      .where('dashboard.id = :dashboardId', { dashboardId })
+      .andWhere('database.userId = :userId', { userId });
 
-      if (search) {
-        queryBuilder.andWhere(
-          '(query.name ILIKE :search OR query.query ILIKE :search)',
-          { search: `%${search}%` },
-        );
-      }
+    if (search) {
+      queryBuilder.andWhere(
+        '(query.name ILIKE :search OR query.query ILIKE :search)',
+        { search: `%${search}%` },
+      );
+    }
 
-      const [queries, count] = await queryBuilder
-        .skip((page - 1) * limit)
-        .take(limit)
-        .getManyAndCount();
+    const [queries, count] = await queryBuilder
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
 
-      return { queries, count };
-    } 
+    return { queries, count };
+  }
 
   async remove(id: number, userId: number) {
- 
-      const query = await this.queryRepo.findOne({
-        where: { id },
-        relations: ['database'],
-      });
+    const query = await this.queryRepo.findOne({
+      where: { id },
+      relations: ['database'],
+    });
 
-      if (!query || query.database.userId !== userId) {
-        throw new ForbiddenException('Unauthorized to delete this query');
-      }
-      await this.queryRepo.delete(id);
-      this.logger.log(`Query ${id} deleted for user ${userId}`);
-      return 'Query and related dashboard entries deleted successfully';
-    } 
+    if (!query || query.database.userId !== userId) {
+      throw new ForbiddenException('Unauthorized to delete this query');
+    }
+    await this.queryRepo.delete(id);
+    this.logger.log(`Query ${id} deleted for user ${userId}`);
+    return 'Query and related dashboard entries deleted successfully';
+  }
 
   async suggestQueries(databaseId: number, userId: number) {
     // use llm suggestedQueriesPrompt to generate 10 queries
@@ -987,59 +985,58 @@ export class QueryService {
   }
 
   async getQueryDataAsJson(queryId: number, userId: number) {
-      const result = await this.queryRepo.query(
-        `SELECT * FROM queries WHERE id = $1 AND "userId" = $2`,
-        [queryId, userId],
+    const result = await this.queryRepo.query(
+      `SELECT * FROM queries WHERE id = $1 AND "userId" = $2`,
+      [queryId, userId],
+    );
+
+    if (!result || result.length === 0) {
+      throw new NotFoundException(
+        `Query with id ${queryId} not found or you don't have access to it`,
       );
-
-      if (!result || result.length === 0) {
-        throw new NotFoundException(
-          `Query with id ${queryId} not found or you don't have access to it`,
-        );
-      }
-
-      // Get the data from the result
-      const rawData = result[0].data;
-
-      // If no data, return empty array
-      if (!rawData) {
-        return [];
-      }
-
-      // Try to directly return the data if it's already in proper format
-      this.logger.log(`Generated JSON data for qurey ${queryId}`);
-      return rawData;
-    } 
-
-  async getQueryDataAsCsv(queryId: number, userId: number) {
-      const query = await this.queryRepo.findOne({
-        where: { id: queryId, userId: userId },
-      });
-      if (!query) {
-        throw new NotFoundException('Query not found or access denied');
-      }
-      const data = query.data;
-      const parsedData = JSON.parse(data);
-      const converter = require('json-2-csv');
-      const csv = await converter.json2csv(parsedData);
-      this.logger.log(`Generated CSV data for qurey ${queryId}`);
-
-      return csv;
     }
 
+    // Get the data from the result
+    const rawData = result[0].data;
+
+    // If no data, return empty array
+    if (!rawData) {
+      return [];
+    }
+
+    // Try to directly return the data if it's already in proper format
+    this.logger.log(`Generated JSON data for qurey ${queryId}`);
+    return rawData;
+  }
+
+  async getQueryDataAsCsv(queryId: number, userId: number) {
+    const query = await this.queryRepo.findOne({
+      where: { id: queryId, userId: userId },
+    });
+    if (!query) {
+      throw new NotFoundException('Query not found or access denied');
+    }
+    const data = query.data;
+    const parsedData = JSON.parse(data);
+    const converter = require('json-2-csv');
+    const csv = await converter.json2csv(parsedData);
+    this.logger.log(`Generated CSV data for qurey ${queryId}`);
+
+    return csv;
+  }
+
   async findOne(id: number, userId: number) {
-   
-      const query = await this.queryRepo.findOne({
-        where: { id, userId },
-      });
+    const query = await this.queryRepo.findOne({
+      where: { id, userId },
+    });
 
-      if (!query) {
-        throw new NotFoundException('Query not found or unauthorized');
-      }
+    if (!query) {
+      throw new NotFoundException('Query not found or unauthorized');
+    }
 
-      if (query.outputType !== 'descriptive') {
-        query.data = JSON.parse(query.data);
-      }
-      return query;
-    } 
+    if (query.outputType !== 'descriptive') {
+      query.data = JSON.parse(query.data);
+    }
+    return query;
+  }
 }

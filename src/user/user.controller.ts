@@ -52,4 +52,25 @@ export class UserController {
     const message = await this.userService.remove(userId);
     return { message };
   }
+
+  @Get('query-activity')
+  @ApiOperation({
+    summary: 'Get queries added per day in last 7 days for current user',
+  })
+  async getQueryActivity(@Request() req) {
+    const userId = req.user.id;
+    const response = await this.userService.getQueryActivity(userId);
+    return response;
+  }
+
+  @Get('query_types')
+  @ApiOperation({
+    summary:
+      'Get distribution of output types of queries created by current user',
+  })
+  async getQueryTypes(@Request() req) {
+    const userId = req.user.id;
+    const response = await this.userService.getQueryTypes(userId);
+    return response;
+  }
 }

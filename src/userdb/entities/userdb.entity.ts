@@ -16,7 +16,6 @@ import {
 import { EncryptionService } from 'src/query/encryption.service';
 import { SSLMode } from 'src/common/global-enums';
 
-
 @Entity('databases')
 export class UserdbEntity {
   @PrimaryGeneratedColumn()
