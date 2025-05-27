@@ -562,6 +562,18 @@ export class QueryService {
 
       query.dashboards.push(dashboard);
       await this.queryRepo.save(query);
+
+      // also add entry to dashboard_query_position table
+      await this.queryRepo
+        .createQueryBuilder()
+        .insert()
+        .into('dashboard_query_positions')
+        .values({
+          queryId: queryId,
+          dashboardId: dashboardId,
+        })
+        .execute();
+      
       this.logger.log(
         `Query ${queryId} linked to dashboard ${dashboardId} for user ${userId}`,
       );
