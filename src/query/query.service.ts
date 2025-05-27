@@ -67,7 +67,6 @@ export class QueryService {
       prompt += `\nOutput Type: ${outputType}`;
     }
 
-    try {
       const response = await openai.chat.completions.create({
         model: this.OPENAI_MODEL,
         temperature: this.OPENAI_TEMPERATURE,
@@ -82,9 +81,9 @@ export class QueryService {
 
       if (cleanResponse.includes('bad request')) {
         this.logger.warn(
-          'Asked user query didnt make any sense to LLM. Query execution blocked',
+          `Generated SQL query contains 'bad request' or similar error message: ${cleanResponse}`,
         );
-        return `SELECT 'Invalid query' as message;`;
+        throw new BadRequestException('Invalid query. Please refine your request.');
       }
 
       // Security check for DML operations (nakli guardrails but works)
@@ -104,27 +103,11 @@ export class QueryService {
       const dmlRegex = new RegExp(`\\b(${dmlKeywords.join('|')})\\b`, 'i');
       if (dmlRegex.test(cleanResponse)) {
         this.logger.warn(
-          'Generated SQL query contains DML keywords. Query execution blocked',
+          `Generated SQL query contains DML keywords: ${cleanResponse}`,
         );
-        return `SELECT 'Query execution blocked. Please contact support for assistance.' as message;`;
+        throw new BadRequestException('Generated SQL query contains DML keywords. Query execution blocked');
       }
-
       return cleanResponse;
-    } catch (error) {
-      if (
-        error.constructor.name === 'APIConnectionError' ||
-        error.message.includes('Connection error') ||
-        error.cause?.code === 'EAI_AGAIN' ||
-        error.cause?.errno === 'EAI_AGAIN'
-      ) {
-        throw new HttpException(
-          'Network issue connecting to AI service.',
-          HttpStatus.SERVICE_UNAVAILABLE,
-        );
-      }
-      this.logger.error('Error generating SQL query:', error);
-      throw new BadRequestException('Failed to generate SQL query.');
-    }
   }
 
   // Helper method to execute SQL query against database

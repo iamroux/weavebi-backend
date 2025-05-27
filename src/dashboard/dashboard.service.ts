@@ -2,7 +2,6 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
-  InternalServerErrorException,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
@@ -17,7 +16,6 @@ import {
 import { Repository } from 'typeorm';
 import { UpdateDashboardQueryPositionsDto } from './dto/update-dashboard-query-positions.dto';
 import {
-  DashboardQueryColorDto,
   UpdateDashboardQueryColorDto,
 } from './dto/update-dashboard-query-color.dto';
 import { UpdateDashboardQueryLabelDto } from './dto/update-dashboard-query-label.dto';

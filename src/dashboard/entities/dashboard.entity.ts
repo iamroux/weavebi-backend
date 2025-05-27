@@ -83,16 +83,16 @@ export class DashboardQueryPositionEntity {
   @PrimaryColumn()
   queryId: number;
 
-  @Column({ type: 'int', nullable: true })
+  @Column({ type: 'int', nullable: true, default: 0 })
   x: number;
 
-  @Column({ type: 'int', nullable: true })
+  @Column({ type: 'int', nullable: true, default: 0 })
   y: number;
 
-  @Column({ type: 'int' , nullable: true })
+  @Column({ type: 'int' , nullable: true , default: 0})
   z: number;
 
-  @Column({ type: 'int' , nullable: true })
+  @Column({ type: 'int' , nullable: true , default: 0})
   h: number;
 
   @Column({ type: 'varchar', nullable: true })

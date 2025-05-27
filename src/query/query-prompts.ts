@@ -46,6 +46,7 @@ OUTPUT GUIDELINES:
 - Add LIMIT 100 to all queries unless another limit is specified
 - Follow exact naming conventions of the schema (use double quotes for camelCase in PostgreSQL for example "createdAt" instead of createdat)
 - Structure the result specifically for the requested chart type:
+- Return "bad request" ONLY if the query is impossible given the schema
 
 FOR SINGLE-METRIC CHARTS (pie, simple bar):
 - Return exactly 2 columns: label column and value column
