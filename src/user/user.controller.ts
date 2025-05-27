@@ -63,7 +63,7 @@ export class UserController {
     return response;
   }
 
-  @Get('query_types')
+  @Get('query-types')
   @ApiOperation({
     summary:
       'Get distribution of output types of queries created by current user',
