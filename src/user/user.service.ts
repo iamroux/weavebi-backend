@@ -1,13 +1,13 @@
 import {
   Injectable,
-  InternalServerErrorException,
   NotFoundException,
   Logger,
+  ConflictException,
 } from '@nestjs/common';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UserEntity } from './entities/user.entity';
-import { Repository } from 'typeorm';
+import { Not, Repository } from 'typeorm';
 import { UserDto } from './dto/user.dto';
 
 @Injectable()
@@ -31,6 +31,12 @@ export class UserService {
     const user = await this.userRepo.findOne({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException('User not found');
+    }
+    const existingUser = await this.userRepo.findOne({
+      where: { email: updateUserDto.email, id: Not(userId) },
+    });
+    if (existingUser) {
+      throw new ConflictException('Email already in use');
     }
     Object.assign(user, updateUserDto);
     await this.userRepo.save(user);
