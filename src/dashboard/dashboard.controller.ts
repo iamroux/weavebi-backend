@@ -12,6 +12,7 @@ import {
   Put,
   HttpCode,
   HttpStatus,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { DashboardService } from './dashboard.service';
 import { CreateDashboardDto } from './dto/create-dashboard.dto';
@@ -156,9 +157,9 @@ export class DashboardController {
   })
   @ApiProperty({})
   @ApiResponse({})
-  async getDashboardInfo(@Request() req, @Param('id') id: string) {
+  async getDashboardInfo(@Request() req, @Param('id', ParseIntPipe) id: number) {
     const userId = req.user.id;
-    return this.dashboardService.getDashboardInfo(+id, userId);
+    return this.dashboardService.getDashboardInfo(id, userId);
   }
 
   @Patch(':id/pin')
