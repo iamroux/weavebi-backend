@@ -50,7 +50,7 @@ export class AuthService {
     }
     const newUser = this.userRepo.create({ ...createAuthDto });
     await this.userRepo.save(newUser);
-    this.logger.log(`Created new user ${newUser.id}`);
+    this.logger.log(`Created new user: ${newUser.id}`);
     return 'User created successfully.';
   }
 
@@ -76,10 +76,10 @@ export class AuthService {
       expiresIn: this.configService.get<string>('jwt.refreshTokenExpiresIn'),
     });
 
-    this.logger.log(`Tokens generated for user ${user.id}`);
+    this.logger.log(`JWT Tokens generated for user ${user.id}`);
     return {
-      access_token: accessToken,
-      refresh_token: refreshToken,
+      accessToken,
+      refreshToken,
     };
   }
 
@@ -109,7 +109,7 @@ export class AuthService {
     this.logger.log(`Token refreshed for user ${user.id}`);
 
     return {
-      access_token: newAccessToken,
+      accessToken: newAccessToken,
     };
   }
 

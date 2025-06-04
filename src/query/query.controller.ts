@@ -55,7 +55,7 @@ export class QueryController {
   @ApiResponse({ type: MessageDto })
   async update(
     @Request() req,
-    @Param('id') id: number,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateQuerydto: UpdateQueryDto,
   ) {
     const userId = req.user.id;
@@ -67,9 +67,9 @@ export class QueryController {
   @ApiOperation({ summary: 'Run an existant query and save output.' })
   @ApiProperty({ type: MessageDto })
   @ApiResponse({ type: QueryEntity })
-  async runQuery(@Param('id') queryId: string, @Request() req) {
+  async runQuery(@Param('id', ParseIntPipe) queryId: number, @Request() req) {
     const userId = req.user.id;
-    return await this.queryService.runQuery(+queryId, userId);
+    return await this.queryService.runQuery(queryId, userId);
   }
 
   @Post('save-run')
@@ -144,11 +144,11 @@ export class QueryController {
   @ApiProperty({ type: MessageDto })
   @ApiResponse({ type: QueryEntity })
   async runDashboard(
-    @Param('dashboardId') dashboardId: string,
+    @Param('dashboardId', ParseIntPipe) dashboardId: number,
     @Request() req,
   ) {
     const userId = req.user.id;
-    const message = await this.queryService.runDashboard(+dashboardId, userId);
+    const message = await this.queryService.runDashboard(dashboardId, userId);
     return { message };
   }
 
@@ -157,7 +157,7 @@ export class QueryController {
   @ApiProperty({ type: Number })
   @ApiResponse({ type: [QueryEntity] })
   async getDatabaseQueries(
-    @Param('databaseId') databaseId: number,
+    @Param('databaseId', ParseIntPipe) databaseId: number,
     @Request() req,
     @Query() query: PaginationQueryDto,
   ) {
@@ -176,7 +176,7 @@ export class QueryController {
   @ApiProperty({ type: Number })
   @ApiResponse({ type: Number })
   async getQueryCountforDatabase(
-    @Param('databaseId') databaseId: number,
+    @Param('databaseId', ParseIntPipe) databaseId: number,
     @Request() req,
   ) {
     const userId = req.userId;
@@ -187,7 +187,7 @@ export class QueryController {
   @ApiOperation({ summary: 'Get count of queries belonging to a dashboard' })
   @ApiProperty({ type: Number })
   @ApiResponse({ type: Number })
-  async getQueryCountforDashboard(@Param('dashboardId') dashboardId: number) {
+  async getQueryCountforDashboard(@Param('dashboardId', ParseIntPipe) dashboardId: number) {
     return await this.queryService.getQueryCountForDashboard(dashboardId);
   }
 
@@ -198,7 +198,7 @@ export class QueryController {
   @ApiProperty({ type: Number })
   @ApiResponse({ type: Number })
   async getExecutedQueryCount(@Request() req) {
-    const userId = req.user.id;
+    const userId: number = req.user.id;
     return await this.queryService.getExecutedQueryCount(userId);
   }
 
@@ -207,7 +207,7 @@ export class QueryController {
   @ApiProperty({ type: Number })
   @ApiResponse({ type: [QueryEntity] })
   async getDashboardQueries(
-    @Param('dashboardId') dashboardId: number,
+    @Param('dashboardId', ParseIntPipe) dashboardId: number,
     @Request() req,
     @Query() query: PaginationQueryDto,
   ) {
@@ -225,7 +225,7 @@ export class QueryController {
   @ApiOperation({ summary: 'Delete a query.' })
   @ApiProperty({ type: Number })
   @ApiResponse({ type: MessageDto })
-  async remove(@Request() req, @Param('id') id: number) {
+  async remove(@Request() req, @Param('id', ParseIntPipe) id: number) {
     const userId = req.user.id;
     const message = await this.queryService.remove(id, userId);
     return { message };
@@ -236,7 +236,7 @@ export class QueryController {
   @ApiProperty({ type: Number })
   @ApiResponse({ type: [QueryEntity] })
   async suggestQueries(
-    @Param('databaseId') databaseId: number,
+    @Param('databaseId', ParseIntPipe) databaseId: number,
     @Request() req,
   ) {
     const userId = req.user.id;
@@ -269,7 +269,7 @@ export class QueryController {
     description: 'Custom instructions for insights',
   })
   async getQueryInsights(
-    @Param('queryId') queryId: number,
+    @Param('queryId', ParseIntPipe) queryId: number,
     @Request() req,
     @Query('search') search: boolean,
     @Query('customInstructions') customInstructions: string,
@@ -287,7 +287,7 @@ export class QueryController {
   @ApiOperation({ summary: 'Generate a sample dashboard for new user' })
   @ApiResponse({ type: MessageDto })
   async generateDashboard(
-    @Param('databaseId') databaseId: number,
+    @Param('databaseId', ParseIntPipe) databaseId: number,
     @Request() req,
   ) {
     const userId = req.user.id;
@@ -337,7 +337,7 @@ export class QueryController {
   @Get()
   @ApiOperation({ summary: 'Get a query using id.' })
   @ApiResponse({ type: QueryEntity })
-  async findOne(@Request() req, @Query('id') id: number) {
+  async findOne(@Request() req, @Query('id', ParseIntPipe) id: number) {
     const userId = req.user.id;
     return await this.queryService.findOne(id, userId);
   }
