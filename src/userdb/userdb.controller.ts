@@ -11,6 +11,7 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { UserdbService } from './userdb.service';
 import { CreateUserdbDto } from './dto/create-userdb.dto';
@@ -83,7 +84,7 @@ export class UserdbController {
   @ApiResponse({ type: MessageDto })
   async update(
     @Request() req,
-    @Param('id') id: number,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateUserdbDto: UpdateUserdbDto,
   ) {
     const userId = req.user.id;
@@ -98,7 +99,7 @@ export class UserdbController {
   @Get(':id')
   @ApiOperation({ summary: 'Get a database from id' })
   @ApiResponse({ type: CreateUserdbDto })
-  async findOne(@Request() req, @Param('id') id: number) {
+  async findOne(@Request() req, @Param('id', ParseIntPipe) id: number) {
     const userId = req.user.id;
     return this.userdbService.findOne(userId, id);
   }
@@ -106,7 +107,7 @@ export class UserdbController {
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a database connection' })
   @ApiResponse({ type: MessageDto })
-  async remove(@Request() req, @Param('id') id: string) {
+  async remove(@Request() req, @Param('id', ParseIntPipe) id: string) {
     const userId = req.user.id;
     const message = await this.userdbService.remove(userId, +id);
     return { message };

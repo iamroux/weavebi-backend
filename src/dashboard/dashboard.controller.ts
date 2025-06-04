@@ -87,18 +87,18 @@ export class DashboardController {
   @ApiOperation({ summary: 'Fetch dashboard info' })
   @ApiProperty({})
   @ApiResponse({})
-  async findOne(@Request() req, @Param('id') id: string) {
+  async findOne(@Request() req, @Param('id', ParseIntPipe) id: number) {
     const userId = req.user.id;
-    return this.dashboardService.findOne(+id, userId);
+    return this.dashboardService.findOne(id, userId);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a dashboard' })
   @ApiProperty({})
   @ApiResponse({ type: MessageDto })
-  async remove(@Request() req, @Param('id') id: string) {
+  async remove(@Request() req, @Param('id', ParseIntPipe) id: number) {
     const userId = req.user.id;
-    const message = await this.dashboardService.remove(userId, +id);
+    const message = await this.dashboardService.remove(userId, id);
     return { message };
   }
 
@@ -131,13 +131,13 @@ export class DashboardController {
   @ApiResponse({ type: MessageDto })
   async update(
     @Request() req,
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateDashboardDto: UpdateDashboardDto,
   ) {
     const userId = req.user.id;
     const message = await this.dashboardService.update(
       userId,
-      +id,
+      id,
       updateDashboardDto,
     );
     return { message };
@@ -166,9 +166,9 @@ export class DashboardController {
   @ApiOperation({ summary: 'Pin and unpin a dashboard (toggle)' })
   @ApiResponse({ type: MessageDto })
   @HttpCode(HttpStatus.OK)
-  async togglePin(@Request() req, @Param('id') id: string) {
+  async togglePin(@Request() req, @Param('id', ParseIntPipe) id: number) {
     const userId = req.user.id;
-    const message = await this.dashboardService.togglePin(+id, userId);
+    const message = await this.dashboardService.togglePin(id, userId);
     return { message };
   }
 }

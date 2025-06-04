@@ -49,11 +49,11 @@ export class AuthController {
   @ApiOperation({ summary: 'Refresh token' })
   @ApiBody({ type: RefreshTokenDto })
   async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
-    const { refresh_token } = refreshTokenDto;
-    if (!refresh_token) {
+    const { refreshToken } = refreshTokenDto;
+    if (!refreshToken) {
       throw new BadRequestException('Refresh token must be provided');
     }
-    return this.authService.refreshToken(refresh_token);
+    return this.authService.refreshToken(refreshToken);
   }
 
   @Post('forgot-password')
