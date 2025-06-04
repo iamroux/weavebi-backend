@@ -269,14 +269,14 @@ export class QueryController {
     description: 'Custom instructions for insights',
   })
   async getQueryInsights(
-    @Param('queryId', ParseIntPipe) queryId: number,
+    @Param('id', ParseIntPipe) id: number,
     @Request() req,
     @Query('search') search: boolean,
     @Query('customInstructions') customInstructions: string,
   ) {
     const userId = req.user.id;
     return await this.queryService.getQueryInsights(
-      queryId,
+      id,
       userId,
       search,
       customInstructions,

@@ -832,14 +832,14 @@ export class QueryService {
   // }
 
   async getQueryInsights(
-    queryId: number,
+    id: number,
     userId: number,
     search: boolean,
     customInstructions: string,
   ) {
     try {
       const query = await this.queryRepo.findOne({
-        where: { id: queryId, userId },
+        where: { id, userId },
       });
 
       if (!query) {
@@ -876,7 +876,7 @@ export class QueryService {
 
       const insights = response.choices[0].message.content?.trim() ?? '';
       this.logger.log(
-        `Insights on query ${queryId} for user ${userId} generated`,
+        `Insights on query ${id} for user ${userId} generated`,
       );
       return { insights: insights };
     } catch (error) {
