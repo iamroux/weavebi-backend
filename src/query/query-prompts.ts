@@ -8,7 +8,7 @@ INPUT:
 RULES:
 - Generate ONLY the raw SQL query with no explanations, comments, or code blocks
 - Return "bad request" ONLY if the query is impossible given the schema
-- Add LIMIT 100 to all SELECT queries unless user specifies another limit
+- Add LIMIT 100 ONLY to SELECT queries that return detailed row results (e.g., SELECT * FROM ..., SELECT column1, column2 FROM ...) unless limit is specified in the query
 - Follow exact naming conventions of the schema (use double quotes for camelCase in PostgreSQL for example "createdAt" instead of createdat)
 - For aggregate queries, always include appropriate GROUP BY clauses
 - For time-based queries, format dates according to database standards
@@ -30,8 +30,7 @@ User asks: "Users created before 2023-01-01"
 User asks: "Count of users and count of databases"
 ✓ SELECT 
   (SELECT COUNT(*) FROM users) AS user_count,
-  (SELECT COUNT(*) FROM databases) AS database_count
-LIMIT 100;`;
+  (SELECT COUNT(*) FROM databases) AS database_count;`;
 
 export const graphicalPrompt = `You are a visualization data expert that generates SQL queries for chart data.
 
@@ -43,7 +42,7 @@ INPUT:
 
 OUTPUT GUIDELINES:
 - Return ONLY the raw SQL query without any explanations or code blocks
-- Add LIMIT 100 to all queries unless another limit is specified
+- Add LIMIT 100 ONLY to SELECT queries that return detailed row results (e.g., SELECT * FROM ..., SELECT column1, column2 FROM ...) unless limit is specified in the query
 - Follow exact naming conventions of the schema (use double quotes for camelCase in PostgreSQL for example "createdAt" instead of createdat)
 - Structure the result specifically for the requested chart type:
 - Return "bad request" ONLY if the query is impossible given the schema
@@ -69,7 +68,7 @@ EXAMPLES:
     SELECT 'Users' as entity_type, COUNT(*) as count FROM users
     UNION ALL
     SELECT 'Databases' as entity_type, COUNT(*) as count FROM databases
-) as counts LIMIT 100;
+) as counts;
 
 "Monthly user signups for line chart"
 ✓ SELECT DATE_TRUNC('month', signup_date) as label, COUNT(*) as value 
@@ -256,6 +255,7 @@ export const insightsPrompt = `You are a data insights specialist analyzing quer
    - Emphasize decision-relevant findings
    - Include quantitative metrics when available (percentages, growth rates, comparisons)
    - When appropriate, suggest next steps or business actions
+   - If the query results are empty or not actionable, return "No significant insights found."
    
    EXAMPLES:
    For query: "Monthly sales by product category"
