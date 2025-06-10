@@ -54,37 +54,40 @@ export class UserService {
     return 'User Deleted successfully';
   }
 
-  async getQueryActivity(userId: number) {
-    const response = await this.userRepo.query(
-      `
-    SELECT 
-      DATE("createdAt") AS date,
-      COUNT(*) AS queries_added
-    FROM queries
-    WHERE "userId" = $1 AND "createdAt" >= NOW() - INTERVAL '7 days'
-    GROUP BY DATE("createdAt")
-    ORDER BY DATE("createdAt") 
-    LIMIT 100;
+async getQueryActivity(userId: number) {
+  const response = await this.userRepo.query(
+    `
+    WITH date_series AS (
+      SELECT (CURRENT_DATE - 6 + i)::DATE AS date
+      FROM generate_series(0, 6) AS i
+    )
+    SELECT
+      ds.date,
+      COALESCE(COUNT(q."createdAt"), 0) AS queries_added
+    FROM date_series ds
+    LEFT JOIN queries q ON DATE(q."createdAt") = ds.date AND q."userId" = $1
+    GROUP BY ds.date
+    ORDER BY ds.date
     `,
-      [userId],
-    );
+    [userId],
+  );
 
-    // Transform SQL result into Chart.js format
-    const labels = response.map((item) => item.date.toISOString().slice(0, 10));
-    const data = response.map((item) => parseInt(item.queries_added, 10));
+  // Transform SQL result into Chart.js format
+  const labels = response.map((item) => item.date.toISOString().slice(0, 10));
+  const data = response.map((item) => parseInt(item.queries_added, 10));
 
-    return {
-      graph_type: 'bar',
-      title: 'Queries You Have Added This Week',
-      labels,
-      datasets: [
-        {
-          label: 'Queries Added',
-          data,
-        },
-      ],
-    };
-  }
+  return {
+    graph_type: 'bar',
+    title: 'Queries You Have Added This Week',
+    labels,
+    datasets: [
+      {
+        label: 'Queries Added',
+        data,
+      },
+    ],
+  };
+}
 
   async getQueryTypes(userId: number) {
     const response = await this.userRepo.query(
