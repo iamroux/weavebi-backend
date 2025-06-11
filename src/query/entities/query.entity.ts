@@ -33,6 +33,9 @@ export class QueryEntity {
   @Column({ nullable: true })
   data: string;
 
+  @Column({nullable: true})
+  insights: string;
+
   @CreateDateColumn()
   createdAt: Date;
 

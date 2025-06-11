@@ -836,6 +836,7 @@ export class QueryService {
     userId: number,
     search: boolean,
     customInstructions: string,
+    overwrite: boolean,
   ) {
     try {
       const query = await this.queryRepo.findOne({
@@ -844,6 +845,14 @@ export class QueryService {
 
       if (!query) {
         throw new BadRequestException('Query not found or unauthorized');
+      }
+
+      const existingInsight = query.insights;
+      if (existingInsight && overwrite === false) {
+        this.logger.log(
+          `Fetched insights for query ${id} for user ${userId}`,
+        );
+        return { insights: existingInsight };
       }
 
       const { query: userQuery, generatedSqlQuery, outputType, data } = query;
@@ -878,7 +887,12 @@ export class QueryService {
       this.logger.log(
         `Insights on query ${id} for user ${userId} generated`,
       );
-      return { insights: insights };
+      // Save insights to query
+      query.insights = insights;
+      await this.queryRepo.save(query);
+      this.logger.log(`Insights saved for query ${id} for user ${userId}`);
+      // Return insights
+      return {insights: insights };
     } catch (error) {
       if (
         error.constructor.name === 'APIConnectionError' ||

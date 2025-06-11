@@ -253,13 +253,14 @@ export class QueryController {
   // }
 
   @Get(':id/insights')
-  @ApiOperation({ summary: 'Get insights for a query.' })
+  @ApiOperation({ summary: 'Fetch/generate query insights' })
   @ApiProperty({ type: Number })
   @ApiResponse({ type: [QueryEntity] })
   @ApiQuery({
     name: 'search',
     type: 'boolean',
     required: false,
+    default: false,
     description: 'Option to use internet for insights',
   })
   @ApiQuery({
@@ -268,11 +269,19 @@ export class QueryController {
     required: false,
     description: 'Custom instructions for insights',
   })
+  @ApiQuery({
+    name: 'overwrite',
+    type: 'boolean',
+    required: false,
+    default: false,
+    description: 'Option to overwrite existing insights',
+  })
   async getQueryInsights(
     @Param('id', ParseIntPipe) id: number,
     @Request() req,
     @Query('search') search: boolean,
     @Query('customInstructions') customInstructions: string,
+    @Query('overwrite', ParseBoolPipe) overwrite: boolean,
   ) {
     const userId = req.user.id;
     return await this.queryService.getQueryInsights(
@@ -280,6 +289,7 @@ export class QueryController {
       userId,
       search,
       customInstructions,
+      overwrite,
     );
   }
 
